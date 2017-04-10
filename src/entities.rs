@@ -60,7 +60,7 @@ pub struct Area {
 }
 
 pub type SxdParserError = sxd_document::parser::Error;
-pub type SxdParserErrors = (usize, Vec<sxd_document::parser::Error>);
+type SxdParserErrors = (usize, Vec<sxd_document::parser::Error>);
 pub type SxdXpathError = sxd_xpath::Error;
 
 #[derive(Debug)]
@@ -117,9 +117,9 @@ impl<'d> XpathReader<'d> {
         context.set_namespace("mb", "http://musicbrainz.org/ns/mmd-2.0#");
 
         Ok(XpathReader {
-               context: context,
-               factory: sxd_xpath::Factory::default(),
-           })
+            context: context,
+            factory: sxd_xpath::Factory::default(),
+        })
     }
 
     fn evaluate<'a, N>(&self,
@@ -148,12 +148,12 @@ impl Area {
         let package = sxd_parse(xml)?;
         let document = package.as_document();
 
-        let mbid = Mbid::parse_str(&reader.evaluate(document.root(), "//mb:area/@id")?.string()
-                                        [..])?;
+        let mbid = Mbid::parse_str(&reader.evaluate(document.root(), "//mb:area/@id")?
+            .string()[..])?;
 
         let area_type = match reader.evaluate(document.root(), "//mb:area/@type")?
-                  .string()
-                  .as_ref() {
+            .string()
+            .as_ref() {
             "Country" => AreaType::Country,
             "Subdivision" => AreaType::Subdivision,
             "County" => AreaType::County,
@@ -166,13 +166,20 @@ impl Area {
             }
         };
         let name = reader.evaluate(document.root(), "//mb:area/mb:name/text()")?.string();
+        let iso_3166_str = reader.evaluate(document.root(),
+                      "//mb:area/mb:iso-3166-1-code-list/mb:iso-3166-1-code/text()")?
+            .string();
 
         Ok(Area {
-               mbid: mbid,
-               name: name,
-               area_type: area_type,
-               iso_3166: None,
-           })
+            mbid: mbid,
+            name: name,
+            area_type: area_type,
+            iso_3166: if iso_3166_str.is_empty() {
+                None
+            } else {
+                Some(iso_3166_str)
+            }
+        })
     }
 }
 
@@ -204,7 +211,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn area_read_xml() {
+    fn area_read_xml1() {
         let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
                     <metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#">
                         <area id="a1411661-be21-4290-8dc1-50f3d8e3ea67" type="City" type-id="6fd8f29a-3d0a-32fc-980d-ea697b69da78">
@@ -219,5 +226,17 @@ mod tests {
         assert_eq!(result.name, "Honolulu".to_string());
         assert_eq!(result.area_type, AreaType::City);
         assert_eq!(result.iso_3166, None);
+    }
+
+    #[test]
+    fn area_read_xml2() {
+        let xml = r#"<?xml version="1.0" encoding="UTF-8"?><metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#"><area type-id="06dd0ae4-8c74-30bb-b43d-95dcedf961de" type="Country" id="2db42837-c832-3c27-b4a3-08198f75693c"><name>Japan</name><sort-name>Japan</sort-name><iso-3166-1-code-list><iso-3166-1-code>JP</iso-3166-1-code></iso-3166-1-code-list></area></metadata>"#;
+        let result = Area::read_xml(&xml).unwrap();
+
+        assert_eq!(result.mbid,
+                   Mbid::parse_str("2db42837-c832-3c27-b4a3-08198f75693c").unwrap());
+        assert_eq!(result.name, "Japan".to_string());
+        assert_eq!(result.area_type, AreaType::Country);
+        assert_eq!(result.iso_3166, Some("JP".to_string()));
     }
 }
