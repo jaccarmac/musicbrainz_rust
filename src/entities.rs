@@ -22,7 +22,7 @@ pub enum AreaType {
     /// Areas included (or previously included) in ISO 3166-1.
     Country,
 
-    /// Main administrative divisions of a country.
+    /// Main administrative divisions of a countryr
     Subdivision,
 
     /// Smaller administrative divisions of a country, which are not one of the main administrative
@@ -45,6 +45,8 @@ pub enum AreaType {
 
 /// A geographic region or settlement.
 /// This is one of the `core entities` of MusicBrainz.
+///
+/// https://musicbrainz.org/doc/Area
 pub struct Area {
     /// MBID of the entity in the MusicBrainz database.
     pub mbid: Mbid,
@@ -106,52 +108,45 @@ impl From<::uuid::ParseError> for ReadError {
     }
 }
 
-struct XpathReader<'d> {
+struct XPathReader<'d> {
     context: sxd_xpath::Context<'d>,
     factory: sxd_xpath::Factory,
+    package: sxd_document::Package,
 }
 
-impl<'d> XpathReader<'d> {
-    fn new() -> Result<XpathReader<'d>, ReadError> {
+impl<'d> XPathReader<'d> {
+    fn new(xml: &str) -> Result<XPathReader<'d>, ReadError> {
         let mut context = sxd_xpath::Context::<'d>::default();
         context.set_namespace("mb", "http://musicbrainz.org/ns/mmd-2.0#");
 
-        Ok(XpathReader {
+        Ok(Self {
             context: context,
             factory: sxd_xpath::Factory::default(),
+            package: sxd_parse(xml)?,
         })
     }
 
-    fn evaluate<'a, N>(&self,
-                       node: N,
-                       xpath_query: &'a str)
-                       -> Result<sxd_xpath::Value<'d>, ReadError>
-        where N: Into<sxd_xpath::nodeset::Node<'d>>
-    {
-        // let node = node.into();
-        // println!("prefixed name: {:?}", node.prefixed_name());
-        // println!("expanded name: {:?}", node.expanded_name());
-        // println!("children: {:?}", node.children());
-
+    fn evaluate(&'d self, xpath_expr: &str) -> Result<sxd_xpath::Value<'d>, ReadError> {
         // TODO remove unwrap.
         let xpath = self.factory
-            .build(xpath_query)?
+            .build(xpath_expr)?
             .unwrap();
-        xpath.evaluate(&self.context, node.into()).map_err(|err| ReadError::from(err))
+        xpath.evaluate(&self.context, self.package.as_document().root())
+            .map_err(|err| ReadError::from(err))
+    }
+
+    fn read_mbid(&self, xpath_expr: &str) -> Result<Mbid, ReadError> {
+        Ok(Mbid::parse_str(&self.evaluate(xpath_expr)?.string()[..])?)
     }
 }
 
 impl Area {
-    pub fn read_xml<'a>(xml: &'a str) -> Result<Area, ReadError> {
-        let reader = XpathReader::new()?;
+    pub fn read_xml(xml: &str) -> Result<Area, ReadError> {
+        let reader = XPathReader::new(xml)?;
 
-        let package = sxd_parse(xml)?;
-        let document = package.as_document();
+        let mbid = reader.read_mbid("//mb:area/@id")?;
 
-        let mbid = Mbid::parse_str(&reader.evaluate(document.root(), "//mb:area/@id")?
-            .string()[..])?;
-
-        let area_type = match reader.evaluate(document.root(), "//mb:area/@type")?
+        let area_type = match reader.evaluate("//mb:area/@type")?
             .string()
             .as_ref() {
             "Country" => AreaType::Country,
@@ -165,10 +160,10 @@ impl Area {
                 return Err(ReadError::InvalidData(format!("Unknown area type: {}", s).to_string()))
             }
         };
-        let name = reader.evaluate(document.root(), "//mb:area/mb:name/text()")?.string();
-        let iso_3166_str = reader.evaluate(document.root(),
-                      "//mb:area/mb:iso-3166-1-code-list/mb:iso-3166-1-code/text()")?
-            .string();
+        let name = reader.evaluate("//mb:area/mb:name/text()")?.string();
+        let iso_3166_str =
+            reader.evaluate("//mb:area/mb:iso-3166-1-code-list/mb:iso-3166-1-code/text()")?
+                .string();
 
         Ok(Area {
             mbid: mbid,
@@ -178,12 +173,85 @@ impl Area {
                 None
             } else {
                 Some(iso_3166_str)
-            }
+            },
         })
     }
 }
 
-pub struct Artist {}
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum ArtistType {
+    Person,
+    Group,
+    Orchestra,
+    Choir,
+    Character,
+    Other,
+}
+
+/// TODO: Find all possible variants. (It says "male, female or neither" in the docs but what does
+/// this mean. Is there a difference between unknown genders and non-binary genders?)
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum Gender {
+    Female,
+    Male,
+    Other,
+}
+
+/// https://musicbrainz.org/doc/Artist
+pub struct Artist {
+    /// MBID of the entity in the MusicBrainz database.
+    pub mbid: Mbid,
+
+    /// The official name of the artist.
+    pub name: String,
+
+    /// Name to properly sort the artist by.
+    /// Even for artists whose `name` is written in a different script this one will be in latin
+    /// script. The full [guidelines](https://musicbrainz.org/doc/Style/Artist/Sort_Name) are a bit more complicated.
+    pub sort_name: String,
+
+    /// Whether this Artist is a person, group, or something else.
+    pub artist_type: ArtistType,
+
+    /// If the Artist is a single person this indicates their gender.
+    pub gender: Option<Gender>,
+
+    /// TODO: Is this an actual area or just an Id? TODO represent what we get from the api and
+    /// if it's just an ID provide methods to fetch these.
+    pub area: Area,
+
+    // TODO: begin and end dates
+    pub ipi_code: Option<String>,
+    pub isni_code: Option<String>, /* TODO aliases
+                                    * TODO disambiguation comment */
+}
+
+impl Artist {
+    pub fn read_xml(xml: &str) -> Result<Self, ReadError> {
+        let reader = XPathReader::new(xml)?;
+
+        let mbid = reader.read_mbid("//mb:artist/@id")?;
+        let name = reader.evaluate("//mb:artist/mb:name/text()")?.string();
+        let sort_name = reader.evaluate("//mb:artist/mb:sort-name/text()")?
+            .string();
+        let artist_type = match reader.evaluate("//mb:artist/@type")?.string().as_ref() {
+            "Person" => ArtistType::Person,
+            "Group" => ArtistType::Group,
+            "Orchestra" => ArtistType::Orchestra,
+            "Choir" => ArtistType::Choir,
+            "Character" => ArtistType::Character,
+            "Other" => ArtistType::Other,
+            t => {
+                return Err(ReadError::InvalidData(format!("Unknown artist type: {}", t)
+                    .to_string()))
+            }
+
+        };
+
+
+        Err(ReadError::InvalidData("TODO".to_string()))
+    }
+}
 
 pub struct Event {}
 
@@ -238,5 +306,21 @@ mod tests {
         assert_eq!(result.name, "Japan".to_string());
         assert_eq!(result.area_type, AreaType::Country);
         assert_eq!(result.iso_3166, Some("JP".to_string()));
+    }
+
+    #[test]
+    fn artist_read_xml1() {
+        let xml = r#"<?xml version="1.0" encoding="UTF-8"?><metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#"><artist id="90e7c2f9-273b-4d6c-a662-ab2d73ea4b8e" type-id="e431f5f6-b5d2-343d-8b36-72607fffb74b" type="Group"><name>NECRONOMIDOL</name><sort-name>NECRONOMIDOL</sort-name><country>JP</country><area id="2db42837-c832-3c27-b4a3-08198f75693c"><name>Japan</name><sort-name>Japan</sort-name><iso-3166-1-code-list><iso-3166-1-code>JP</iso-3166-1-code></iso-3166-1-code-list></area><begin-area id="8dc97297-ac95-4d33-82bc-e07fab26fb5f"><name>Tokyo</name><sort-name>Tokyo</sort-name><iso-3166-2-code-list><iso-3166-2-code>JP-13</iso-3166-2-code></iso-3166-2-code-list></begin-area><life-span><begin>2014-03</begin></life-span></artist></metadata><Paste>"#;
+        let result = Artist::read_xml(&xml).unwrap();
+
+        assert_eq!(result.mbid,
+                   Mbid::parse_str("90e7c2f9-273b-4d6c-a662-ab2d73ea4b8e").unwrap());
+        assert_eq!(result.name, "NECRONOMIDOL".to_string());
+        assert_eq!(result.sort_name, "NECRONOMIDOL".to_string());
+        // TODO: Check area.
+        assert_eq!(result.artist_type, ArtistType::Group);
+        assert_eq!(result.gender, None);
+        assert_eq!(result.ipi_code, None);
+        assert_eq!(result.isni_code, None);
     }
 }
