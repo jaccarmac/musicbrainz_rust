@@ -5,6 +5,7 @@ use sxd_xpath;
 use sxd_xpath::evaluate_xpath;
 
 use std::io::Read;
+use std::str::FromStr;
 
 /// Identifier for entities in the MusicBrainz database.
 /// TODO: Figure out if it makes more sense to keep
@@ -70,6 +71,9 @@ pub enum ReadError {
     XmlParserError(SxdParserError),
     XmlXpathError(SxdXpathError),
     InvalidData(String),
+    /// There was an internal error somewhere in our code. If this occurs it is considered a bug
+    /// that should be reported and fixed.
+    InternalError(String),
 }
 
 impl From<SxdParserError> for ReadError {
@@ -108,6 +112,7 @@ impl From<::uuid::ParseError> for ReadError {
     }
 }
 
+/// Used internally to facilate execution of XPath expressions on the returned XML.
 struct XPathReader<'d> {
     context: sxd_xpath::Context<'d>,
     factory: sxd_xpath::Factory,
@@ -127,10 +132,9 @@ impl<'d> XPathReader<'d> {
     }
 
     fn evaluate(&'d self, xpath_expr: &str) -> Result<sxd_xpath::Value<'d>, ReadError> {
-        // TODO remove unwrap.
         let xpath = self.factory
             .build(xpath_expr)?
-            .unwrap();
+            .ok_or(ReadError::InternalError("XPath instance was None!".to_string()))?;
         xpath.evaluate(&self.context, self.package.as_document().root())
             .map_err(|err| ReadError::from(err))
     }
@@ -139,6 +143,36 @@ impl<'d> XPathReader<'d> {
         Ok(Mbid::parse_str(&self.evaluate(xpath_expr)?.string()[..])?)
     }
 }
+
+impl<'d> FromStr for XPathReader<'d> {
+    type Err = ReadError;
+
+    fn from_str(xml: &str) -> Result<Self, Self::Err> {
+        XPathReader::new(xml)
+    }
+}
+
+// TODO:
+// The goal is to be able to create parser instances either from an XML string source or from a
+// selected element, given in the form of a `Node<'e>`. Some possible options:
+// 1) Split reader into a struct reading from a Node and a struct holding everything else and
+//    passing through commands to the inner struct. If we need to create a new reader from a Node
+//    we can just construct a new instance of only the inner struct, otherwise we will also
+//    construct the outer struct.
+// 2) Have two completely different structs implementing both the same trait (probably it would
+//    suffice to provide the `evaluate` from root method, then everything else could be added on
+//    top of that. At first this might seem like the worse option, but maybe not having to pass
+//    through all function calls to the inner struct might actually pay off in terms of code
+//    readabilty as it could be written only once in a trait impl.
+// 3) Potential alternative options.
+
+/*
+impl<'d> From<::sxd_xpath::nodeset::Node<'d>> for XPathReader<'d> {
+    fn from(node: ::sxd_xpath::nodeset::Node<'d>) -> Self {
+
+    }
+}
+*/
 
 impl Area {
     pub fn read_xml(xml: &str) -> Result<Area, ReadError> {
@@ -190,11 +224,11 @@ pub enum ArtistType {
 
 /// TODO: Find all possible variants. (It says "male, female or neither" in the docs but what does
 /// this mean. Is there a difference between unknown genders and non-binary genders?)
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Gender {
     Female,
     Male,
-    Other,
+    Other(String),
 }
 
 /// https://musicbrainz.org/doc/Artist
@@ -245,7 +279,19 @@ impl Artist {
                 return Err(ReadError::InvalidData(format!("Unknown artist type: {}", t)
                     .to_string()))
             }
+        };
 
+        // Get area information.
+        let area_val = match reader.evaluate("//mb:artist/mb:area")? {
+            sxd_xpath::Value::Nodeset(nodeset) => {
+                if let Some(node) = nodeset.document_order_first() {
+                    // Extract Area struct from the node.
+                    // TODO
+                } else {
+                    return Err(ReadError::InvalidData("Area element is empty.".to_string()));
+                }
+            }
+            _ => return Err(ReadError::InvalidData("Area value is not a nodeset.".to_string())),
         };
 
 
