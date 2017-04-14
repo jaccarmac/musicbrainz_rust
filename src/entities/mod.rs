@@ -125,6 +125,7 @@ pub enum Gender {
 }
 
 /// https://musicbrainz.org/doc/Artist
+/// TODO: Figure out which properties are optional and which ones are always given.
 pub struct Artist {
     /// MBID of the entity in the MusicBrainz database.
     pub mbid: Mbid,
@@ -143,9 +144,9 @@ pub struct Artist {
     /// If the Artist is a single person this indicates their gender.
     pub gender: Option<Gender>,
 
-    /// TODO: Is this an actual area or just an Id? TODO represent what we get from the api and
-    /// if it's just an ID provide methods to fetch these.
-    pub area: Area,
+    /// The area an artist is primarily identified with. Often, but not always, birth/formation
+    /// country of the artist/group.
+    pub area: Option<Area>,
 
     // TODO: begin and end dates
     pub ipi_code: Option<String>,
