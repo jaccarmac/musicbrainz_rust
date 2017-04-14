@@ -143,6 +143,13 @@ pub struct Artist {
 
     /// The area an artist is primarily identified with. Often, but not always, birth/formation
     /// country of the artist/group.
+    ///
+    /// TODO: Consider if we should usa a different type than Area here, e.g. ArtistArea.
+    /// The problem is that unlike with the standalone Area entity, the type is not provided here
+    /// by the api and we have to make the area_type an Option in Area which is a bit ugly
+    /// considering API users.
+    /// (But we could also just leave it as is and let API clients deal with extracting all the
+    /// optional values.)
     pub area: Option<Area>,
 
     // TODO: begin and end dates
