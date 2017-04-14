@@ -1,11 +1,5 @@
 use uuid;
-use sxd_document;
-use sxd_document::parser::parse as sxd_parse;
-use sxd_xpath;
-use sxd_xpath::evaluate_xpath;
-
-use std::io::Read;
-use std::str::FromStr;
+use sxd_xpath::Value::Nodeset;
 
 mod xpath_reader;
 use self::xpath_reader::*;
@@ -15,12 +9,14 @@ pub use self::xpath_reader::{ReadError, SxdParserError, SxdXpathError};
 /// TODO: Figure out if it makes more sense to keep
 pub type Mbid = uuid::Uuid;
 
+/*
 pub trait Resource {
     // TODO: add inc= support
     fn lookup(mbid: &Mbid, inc: Option<()>);
 
     //    pub
 }
+*/
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum AreaType {
@@ -178,7 +174,7 @@ impl Artist {
 
         // Get area information.
         let area_val = match reader.evaluate("//mb:artist/mb:area")? {
-            sxd_xpath::Value::Nodeset(nodeset) => {
+            Nodeset(nodeset) => {
                 if let Some(node) = nodeset.document_order_first() {
                     let reader = XPathNodeReader::new(node, &context)?;
                     Some(Area::read_xml(&reader)?)
