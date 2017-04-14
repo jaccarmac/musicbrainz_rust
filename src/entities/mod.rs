@@ -7,6 +7,10 @@ use sxd_xpath::evaluate_xpath;
 use std::io::Read;
 use std::str::FromStr;
 
+mod xpath_reader;
+use self::xpath_reader::*;
+pub use self::xpath_reader::{ReadError, SxdParserError, SxdXpathError};
+
 /// Identifier for entities in the MusicBrainz database.
 /// TODO: Figure out if it makes more sense to keep
 pub type Mbid = uuid::Uuid;
@@ -62,121 +66,6 @@ pub struct Area {
     pub iso_3166: Option<String>,
 }
 
-pub type SxdParserError = sxd_document::parser::Error;
-type SxdParserErrors = (usize, Vec<sxd_document::parser::Error>);
-pub type SxdXpathError = sxd_xpath::Error;
-
-#[derive(Debug)]
-pub enum ReadError {
-    XmlParserError(SxdParserError),
-    XmlXpathError(SxdXpathError),
-    InvalidData(String),
-    /// There was an internal error somewhere in our code. If this occurs it is considered a bug
-    /// that should be reported and fixed.
-    InternalError(String),
-}
-
-impl From<SxdParserError> for ReadError {
-    fn from(e: SxdParserError) -> ReadError {
-        ReadError::XmlParserError(e)
-    }
-}
-
-impl From<SxdParserErrors> for ReadError {
-    fn from(e: SxdParserErrors) -> ReadError {
-        ReadError::XmlParserError(e.1[0])
-    }
-}
-
-impl From<SxdXpathError> for ReadError {
-    fn from(e: SxdXpathError) -> ReadError {
-        ReadError::XmlXpathError(e)
-    }
-}
-
-impl From<::sxd_xpath::ParserError> for ReadError {
-    fn from(e: ::sxd_xpath::ParserError) -> ReadError {
-        ReadError::XmlXpathError(::sxd_xpath::Error::Parsing(e))
-    }
-}
-
-impl From<::sxd_xpath::ExecutionError> for ReadError {
-    fn from(e: ::sxd_xpath::ExecutionError) -> ReadError {
-        ReadError::XmlXpathError(::sxd_xpath::Error::Executing(e))
-    }
-}
-
-impl From<::uuid::ParseError> for ReadError {
-    fn from(err: ::uuid::ParseError) -> ReadError {
-        ReadError::InvalidData(format!("Failed parsing string as uuid: {}", err).to_string())
-    }
-}
-
-trait XPathReader<'d> {
-    fn evaluate(&'d self, xpath_expr: &str) -> Result<sxd_xpath::Value<'d>, ReadError>;
-    fn read_mbid(&'d self, xpath_expr: &str) -> Result<Mbid, ReadError> {
-        Ok(Mbid::parse_str(&self.evaluate(xpath_expr)?.string()[..])?)
-    }
-}
-
-struct XPathStrReader<'d> {
-    context: sxd_xpath::Context<'d>,
-    factory: sxd_xpath::Factory,
-    package: sxd_document::Package,
-}
-
-impl<'d> XPathStrReader<'d> {
-    fn new(xml: &str) -> Result<Self, ReadError> {
-        let mut context = sxd_xpath::Context::<'d>::default();
-        context.set_namespace("mb", "http://musicbrainz.org/ns/mmd-2.0#");
-
-        Ok(Self {
-            context: context,
-            factory: sxd_xpath::Factory::default(),
-            package: sxd_parse(xml)?,
-        })
-    }
-}
-
-fn build_xpath(factory: &sxd_xpath::Factory,
-               xpath_expr: &str)
-               -> Result<sxd_xpath::XPath, ReadError> {
-    factory.build(xpath_expr)?
-        .ok_or(ReadError::InternalError("XPath instance was None!".to_string()))
-}
-
-impl<'d> XPathReader<'d> for XPathStrReader<'d> {
-    fn evaluate(&'d self, xpath_expr: &str) -> Result<sxd_xpath::Value<'d>, ReadError> {
-        let xpath = build_xpath(&self.factory, xpath_expr)?;
-        xpath.evaluate(&self.context, self.package.as_document().root())
-            .map_err(|err| ReadError::from(err))
-    }
-}
-
-struct XPathNodeReader<'d> {
-    factory: sxd_xpath::Factory,
-    node: sxd_xpath::nodeset::Node<'d>,
-    context: &'d sxd_xpath::Context<'d>,
-}
-
-impl<'d> XPathNodeReader<'d> {
-    fn new<N>(node: N, context: &'d sxd_xpath::Context<'d>) -> Result<Self, ReadError>
-        where N: Into<sxd_xpath::nodeset::Node<'d>>
-    {
-        Ok(Self {
-            node: node.into(),
-            factory: sxd_xpath::Factory::default(),
-            context: context,
-        })
-    }
-}
-
-impl<'d> XPathReader<'d> for XPathNodeReader<'d> {
-    fn evaluate(&'d self, xpath_expr: &str) -> Result<sxd_xpath::Value<'d>, ReadError> {
-        let xpath = build_xpath(&self.factory, xpath_expr)?;
-        xpath.evaluate(self.context, self.node).map_err(|err| ReadError::from(err))
-    }
-}
 
 impl Area {
     fn read_xml<'d, R>(reader: &'d R) -> Result<Area, ReadError>
