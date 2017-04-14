@@ -9,14 +9,13 @@ pub use self::xpath_reader::{ReadError, SxdParserError, SxdXpathError};
 /// TODO: Figure out if it makes more sense to keep
 pub type Mbid = uuid::Uuid;
 
-/*
-pub trait Resource {
-    // TODO: add inc= support
-    fn lookup(mbid: &Mbid, inc: Option<()>);
-
-    //    pub
-}
-*/
+// pub trait Resource {
+// TODO: add inc= support
+// fn lookup(mbid: &Mbid, inc: Option<()>);
+//
+//    pub
+// }
+//
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum AreaType {
@@ -56,7 +55,7 @@ pub struct Area {
     pub name: String,
 
     /// The type of the area.
-    pub area_type: AreaType,
+    pub area_type: Option<AreaType>,
 
     /// ISO 3166 code, assigned to countries and subdivisions.
     pub iso_3166: Option<String>,
@@ -72,16 +71,14 @@ impl Area {
         let area_type = match reader.evaluate("//mb:area/@type")?
             .string()
             .as_ref() {
-            "Country" => AreaType::Country,
-            "Subdivision" => AreaType::Subdivision,
-            "County" => AreaType::County,
-            "Muncipality" => AreaType::Muncipality,
-            "City" => AreaType::City,
-            "District" => AreaType::District,
-            "Island" => AreaType::Island,
-            s => {
-                return Err(ReadError::InvalidData(format!("Unknown area type: {}", s).to_string()))
-            }
+            "Country" => Some(AreaType::Country),
+            "Subdivision" => Some(AreaType::Subdivision),
+            "County" => Some(AreaType::County),
+            "Muncipality" => Some(AreaType::Muncipality),
+            "City" => Some(AreaType::City),
+            "District" => Some(AreaType::District),
+            "Island" => Some(AreaType::Island),
+            s => None,
         };
         let name = reader.evaluate("//mb:area/mb:name/text()")?.string();
         let iso_3166_str =
@@ -193,7 +190,7 @@ impl Artist {
             gender: None,
             area: area_val,
             ipi_code: None,
-            isni_code: None
+            isni_code: None,
         })
     }
 }
@@ -238,7 +235,7 @@ mod tests {
         assert_eq!(result.mbid,
                    Mbid::parse_str("a1411661-be21-4290-8dc1-50f3d8e3ea67").unwrap());
         assert_eq!(result.name, "Honolulu".to_string());
-        assert_eq!(result.area_type, AreaType::City);
+        assert_eq!(result.area_type, Some(AreaType::City));
         assert_eq!(result.iso_3166, None);
     }
 
@@ -251,13 +248,13 @@ mod tests {
         assert_eq!(result.mbid,
                    Mbid::parse_str("2db42837-c832-3c27-b4a3-08198f75693c").unwrap());
         assert_eq!(result.name, "Japan".to_string());
-        assert_eq!(result.area_type, AreaType::Country);
+        assert_eq!(result.area_type, Some(AreaType::Country));
         assert_eq!(result.iso_3166, Some("JP".to_string()));
     }
 
     #[test]
     fn artist_read_xml1() {
-        let xml = r#"<?xml version="1.0" encoding="UTF-8"?><metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#"><artist id="90e7c2f9-273b-4d6c-a662-ab2d73ea4b8e" type-id="e431f5f6-b5d2-343d-8b36-72607fffb74b" type="Group"><name>NECRONOMIDOL</name><sort-name>NECRONOMIDOL</sort-name><country>JP</country><area id="2db42837-c832-3c27-b4a3-08198f75693c"><name>Japan</name><sort-name>Japan</sort-name><iso-3166-1-code-list><iso-3166-1-code>JP</iso-3166-1-code></iso-3166-1-code-list></area><begin-area id="8dc97297-ac95-4d33-82bc-e07fab26fb5f"><name>Tokyo</name><sort-name>Tokyo</sort-name><iso-3166-2-code-list><iso-3166-2-code>JP-13</iso-3166-2-code></iso-3166-2-code-list></begin-area><life-span><begin>2014-03</begin></life-span></artist></metadata><Paste>"#;
+        let xml = r#"<?xml version="1.0" encoding="UTF-8"?><metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#"><artist id="90e7c2f9-273b-4d6c-a662-ab2d73ea4b8e" type-id="e431f5f6-b5d2-343d-8b36-72607fffb74b" type="Group"><name>NECRONOMIDOL</name><sort-name>NECRONOMIDOL</sort-name><country>JP</country><area id="2db42837-c832-3c27-b4a3-08198f75693c"><name>Japan</name><sort-name>Japan</sort-name><iso-3166-1-code-list><iso-3166-1-code>JP</iso-3166-1-code></iso-3166-1-code-list></area><begin-area id="8dc97297-ac95-4d33-82bc-e07fab26fb5f"><name>Tokyo</name><sort-name>Tokyo</sort-name><iso-3166-2-code-list><iso-3166-2-code>JP-13</iso-3166-2-code></iso-3166-2-code-list></begin-area><life-span><begin>2014-03</begin></life-span></artist></metadata>"#;
         let result = Artist::read_xml(&xml).unwrap();
 
         assert_eq!(result.mbid,

@@ -12,6 +12,8 @@ pub mod errors {
 
     }
 }
+use errors::*;
+
 pub mod entities;
 
 #[cfg(test)]
