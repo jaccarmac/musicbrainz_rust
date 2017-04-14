@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Leo Schwarz <mail@leoschwarz.com>"]
 
 [dependencies]
+error-chain = "0.10.0"
 uuid = "0.4.0"
 sxd-document = "0.2.0"
 sxd-xpath = "0.4.0"
