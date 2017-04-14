@@ -156,6 +156,7 @@ pub struct Artist {
 
 impl Artist {
     fn read_xml(xml: &str) -> Result<Self, ReadError> {
+        let context = default_musicbrainz_context();
         let reader = XPathStrReader::new(xml)?;
 
         let mbid = reader.read_mbid("//mb:artist/@id")?;
@@ -179,18 +180,25 @@ impl Artist {
         let area_val = match reader.evaluate("//mb:artist/mb:area")? {
             sxd_xpath::Value::Nodeset(nodeset) => {
                 if let Some(node) = nodeset.document_order_first() {
-
-                    // Extract Area struct from the node.
-                    // TODO
+                    let reader = XPathNodeReader::new(node, &context)?;
+                    Some(Area::read_xml(&reader)?)
                 } else {
                     return Err(ReadError::InvalidData("Area element is empty.".to_string()));
                 }
             }
-            _ => return Err(ReadError::InvalidData("Area value is not a nodeset.".to_string())),
+            _ => None,
         };
 
-
-        Err(ReadError::InvalidData("TODO".to_string()))
+        Ok(Artist {
+            mbid: mbid,
+            name: name,
+            sort_name: sort_name,
+            artist_type: artist_type,
+            gender: None,
+            area: area_val,
+            ipi_code: None,
+            isni_code: None
+        })
     }
 }
 

@@ -7,6 +7,12 @@ use sxd_document::parser::parse as sxd_parse;
 
 use super::Mbid;
 
+pub fn default_musicbrainz_context<'d>() -> Context<'d> {
+    let mut context = Context::<'d>::default();
+    context.set_namespace("mb", "http://musicbrainz.org/ns/mmd-2.0#");
+    context
+}
+
 /// Allows to execute XPath expressions on some kind of abstract document structure.
 pub trait XPathReader<'d> {
     /// Evaluate an XPath expression on the root of this reader.
@@ -54,11 +60,9 @@ fn build_xpath(factory: &Factory, xpath_expr: &str) -> Result<XPath, ReadError> 
 
 impl<'d> XPathStrReader<'d> {
     pub fn new(xml: &str) -> Result<Self, ReadError> {
-        let mut context = Context::<'d>::default();
-        context.set_namespace("mb", "http://musicbrainz.org/ns/mmd-2.0#");
 
         Ok(Self {
-            context: context,
+            context: default_musicbrainz_context(),
             factory: Factory::default(),
             package: sxd_parse(xml)?,
         })
