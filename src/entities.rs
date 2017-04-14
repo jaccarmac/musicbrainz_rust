@@ -112,15 +112,21 @@ impl From<::uuid::ParseError> for ReadError {
     }
 }
 
-/// Used internally to facilate execution of XPath expressions on the returned XML.
-struct XPathReader<'d> {
+trait XPathReader<'d> {
+    fn evaluate(&'d self, xpath_expr: &str) -> Result<sxd_xpath::Value<'d>, ReadError>;
+    fn read_mbid(&'d self, xpath_expr: &str) -> Result<Mbid, ReadError> {
+        Ok(Mbid::parse_str(&self.evaluate(xpath_expr)?.string()[..])?)
+    }
+}
+
+struct XPathStrReader<'d> {
     context: sxd_xpath::Context<'d>,
     factory: sxd_xpath::Factory,
     package: sxd_document::Package,
 }
 
-impl<'d> XPathReader<'d> {
-    fn new(xml: &str) -> Result<XPathReader<'d>, ReadError> {
+impl<'d> XPathStrReader<'d> {
+    fn new(xml: &str) -> Result<Self, ReadError> {
         let mut context = sxd_xpath::Context::<'d>::default();
         context.set_namespace("mb", "http://musicbrainz.org/ns/mmd-2.0#");
 
@@ -130,54 +136,52 @@ impl<'d> XPathReader<'d> {
             package: sxd_parse(xml)?,
         })
     }
+}
 
+fn build_xpath(factory: &sxd_xpath::Factory,
+               xpath_expr: &str)
+               -> Result<sxd_xpath::XPath, ReadError> {
+    factory.build(xpath_expr)?
+        .ok_or(ReadError::InternalError("XPath instance was None!".to_string()))
+}
+
+impl<'d> XPathReader<'d> for XPathStrReader<'d> {
     fn evaluate(&'d self, xpath_expr: &str) -> Result<sxd_xpath::Value<'d>, ReadError> {
-        let xpath = self.factory
-            .build(xpath_expr)?
-            .ok_or(ReadError::InternalError("XPath instance was None!".to_string()))?;
+        let xpath = build_xpath(&self.factory, xpath_expr)?;
         xpath.evaluate(&self.context, self.package.as_document().root())
             .map_err(|err| ReadError::from(err))
     }
+}
 
-    fn read_mbid(&self, xpath_expr: &str) -> Result<Mbid, ReadError> {
-        Ok(Mbid::parse_str(&self.evaluate(xpath_expr)?.string()[..])?)
+struct XPathNodeReader<'d> {
+    factory: sxd_xpath::Factory,
+    node: sxd_xpath::nodeset::Node<'d>,
+    context: &'d sxd_xpath::Context<'d>,
+}
+
+impl<'d> XPathNodeReader<'d> {
+    fn new<N>(node: N, context: &'d sxd_xpath::Context<'d>) -> Result<Self, ReadError>
+        where N: Into<sxd_xpath::nodeset::Node<'d>>
+    {
+        Ok(Self {
+            node: node.into(),
+            factory: sxd_xpath::Factory::default(),
+            context: context,
+        })
     }
 }
 
-impl<'d> FromStr for XPathReader<'d> {
-    type Err = ReadError;
-
-    fn from_str(xml: &str) -> Result<Self, Self::Err> {
-        XPathReader::new(xml)
+impl<'d> XPathReader<'d> for XPathNodeReader<'d> {
+    fn evaluate(&'d self, xpath_expr: &str) -> Result<sxd_xpath::Value<'d>, ReadError> {
+        let xpath = build_xpath(&self.factory, xpath_expr)?;
+        xpath.evaluate(self.context, self.node).map_err(|err| ReadError::from(err))
     }
 }
-
-// TODO:
-// The goal is to be able to create parser instances either from an XML string source or from a
-// selected element, given in the form of a `Node<'e>`. Some possible options:
-// 1) Split reader into a struct reading from a Node and a struct holding everything else and
-//    passing through commands to the inner struct. If we need to create a new reader from a Node
-//    we can just construct a new instance of only the inner struct, otherwise we will also
-//    construct the outer struct.
-// 2) Have two completely different structs implementing both the same trait (probably it would
-//    suffice to provide the `evaluate` from root method, then everything else could be added on
-//    top of that. At first this might seem like the worse option, but maybe not having to pass
-//    through all function calls to the inner struct might actually pay off in terms of code
-//    readabilty as it could be written only once in a trait impl.
-// 3) Potential alternative options.
-
-/*
-impl<'d> From<::sxd_xpath::nodeset::Node<'d>> for XPathReader<'d> {
-    fn from(node: ::sxd_xpath::nodeset::Node<'d>) -> Self {
-
-    }
-}
-*/
 
 impl Area {
-    pub fn read_xml(xml: &str) -> Result<Area, ReadError> {
-        let reader = XPathReader::new(xml)?;
-
+    fn read_xml<'d, R>(reader: &'d R) -> Result<Area, ReadError>
+        where R: XPathReader<'d>
+    {
         let mbid = reader.read_mbid("//mb:area/@id")?;
 
         let area_type = match reader.evaluate("//mb:area/@type")?
@@ -261,8 +265,8 @@ pub struct Artist {
 }
 
 impl Artist {
-    pub fn read_xml(xml: &str) -> Result<Self, ReadError> {
-        let reader = XPathReader::new(xml)?;
+    fn read_xml(xml: &str) -> Result<Self, ReadError> {
+        let reader = XPathStrReader::new(xml)?;
 
         let mbid = reader.read_mbid("//mb:artist/@id")?;
         let name = reader.evaluate("//mb:artist/mb:name/text()")?.string();
@@ -285,6 +289,7 @@ impl Artist {
         let area_val = match reader.evaluate("//mb:artist/mb:area")? {
             sxd_xpath::Value::Nodeset(nodeset) => {
                 if let Some(node) = nodeset.document_order_first() {
+
                     // Extract Area struct from the node.
                     // TODO
                 } else {
@@ -333,7 +338,8 @@ mod tests {
                             <sort-name>Honolulu</sort-name>
                         </area>
                     </metadata>"#;
-        let result = Area::read_xml(&xml).unwrap();
+        let reader = XPathStrReader::new(xml).unwrap();
+        let result = Area::read_xml(&reader).unwrap();
 
         assert_eq!(result.mbid,
                    Mbid::parse_str("a1411661-be21-4290-8dc1-50f3d8e3ea67").unwrap());
@@ -345,7 +351,8 @@ mod tests {
     #[test]
     fn area_read_xml2() {
         let xml = r#"<?xml version="1.0" encoding="UTF-8"?><metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#"><area type-id="06dd0ae4-8c74-30bb-b43d-95dcedf961de" type="Country" id="2db42837-c832-3c27-b4a3-08198f75693c"><name>Japan</name><sort-name>Japan</sort-name><iso-3166-1-code-list><iso-3166-1-code>JP</iso-3166-1-code></iso-3166-1-code-list></area></metadata>"#;
-        let result = Area::read_xml(&xml).unwrap();
+        let reader = XPathStrReader::new(xml).unwrap();
+        let result = Area::read_xml(&reader).unwrap();
 
         assert_eq!(result.mbid,
                    Mbid::parse_str("2db42837-c832-3c27-b4a3-08198f75693c").unwrap());
