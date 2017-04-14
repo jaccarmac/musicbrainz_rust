@@ -54,6 +54,8 @@ pub struct Area {
     /// The name of the area.
     pub name: String,
 
+    pub sort_name: String,
+
     /// The type of the area.
     pub area_type: Option<AreaType>,
 
@@ -81,6 +83,7 @@ impl Area {
             s => None,
         };
         let name = reader.evaluate("//mb:area/mb:name/text()")?.string();
+        let sort_name = reader.evaluate("//mb:area/mb:sort-name/text()")?.string();
         let iso_3166_str =
             reader.evaluate("//mb:area/mb:iso-3166-1-code-list/mb:iso-3166-1-code/text()")?
                 .string();
@@ -88,6 +91,7 @@ impl Area {
         Ok(Area {
             mbid: mbid,
             name: name,
+            sort_name: sort_name,
             area_type: area_type,
             iso_3166: if iso_3166_str.is_empty() {
                 None
@@ -235,6 +239,7 @@ mod tests {
         assert_eq!(result.mbid,
                    Mbid::parse_str("a1411661-be21-4290-8dc1-50f3d8e3ea67").unwrap());
         assert_eq!(result.name, "Honolulu".to_string());
+        assert_eq!(result.sort_name, "Honolulu".to_string());
         assert_eq!(result.area_type, Some(AreaType::City));
         assert_eq!(result.iso_3166, None);
     }
@@ -248,6 +253,7 @@ mod tests {
         assert_eq!(result.mbid,
                    Mbid::parse_str("2db42837-c832-3c27-b4a3-08198f75693c").unwrap());
         assert_eq!(result.name, "Japan".to_string());
+        assert_eq!(result.sort_name, "Japan".to_string());
         assert_eq!(result.area_type, Some(AreaType::Country));
         assert_eq!(result.iso_3166, Some("JP".to_string()));
     }
@@ -261,7 +267,13 @@ mod tests {
                    Mbid::parse_str("90e7c2f9-273b-4d6c-a662-ab2d73ea4b8e").unwrap());
         assert_eq!(result.name, "NECRONOMIDOL".to_string());
         assert_eq!(result.sort_name, "NECRONOMIDOL".to_string());
-        // TODO: Check area.
+
+        let area = result.area.unwrap();
+        assert_eq!(area.mbid, Mbid::parse_str("2db42837-c832-3c27-b4a3-08198f75693c").unwrap());
+        assert_eq!(area.name, "Japan".to_string());
+        assert_eq!(area.sort_name, "Japan".to_string());
+        assert_eq!(area.iso_3166, Some("JP".to_string()));
+
         assert_eq!(result.artist_type, ArtistType::Group);
         assert_eq!(result.gender, None);
         assert_eq!(result.ipi_code, None);
