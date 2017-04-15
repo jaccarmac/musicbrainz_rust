@@ -54,26 +54,28 @@ pub enum ReadError {
 }
 
 fn build_xpath(factory: &Factory, xpath_expr: &str) -> Result<XPath, ReadError> {
-    factory.build(xpath_expr)?
-        .ok_or(ReadError::InternalError("XPath instance was None!".to_string()))
+    factory
+        .build(xpath_expr)?
+        .ok_or_else(|| ReadError::InternalError("XPath instance was None!".to_string()))
 }
 
 impl<'d> XPathStrReader<'d> {
     pub fn new(xml: &str) -> Result<Self, ReadError> {
 
         Ok(Self {
-            context: default_musicbrainz_context(),
-            factory: Factory::default(),
-            package: sxd_parse(xml)?,
-        })
+               context: default_musicbrainz_context(),
+               factory: Factory::default(),
+               package: sxd_parse(xml)?,
+           })
     }
 }
 
 impl<'d> XPathReader<'d> for XPathStrReader<'d> {
     fn evaluate(&'d self, xpath_expr: &str) -> Result<Value<'d>, ReadError> {
         let xpath = build_xpath(&self.factory, xpath_expr)?;
-        xpath.evaluate(&self.context, self.package.as_document().root())
-            .map_err(|err| ReadError::from(err))
+        xpath
+            .evaluate(&self.context, self.package.as_document().root())
+            .map_err(ReadError::from)
     }
 }
 
@@ -82,17 +84,19 @@ impl<'d> XPathNodeReader<'d> {
         where N: Into<Node<'d>>
     {
         Ok(Self {
-            node: node.into(),
-            factory: Factory::default(),
-            context: context,
-        })
+               node: node.into(),
+               factory: Factory::default(),
+               context: context,
+           })
     }
 }
 
 impl<'d> XPathReader<'d> for XPathNodeReader<'d> {
     fn evaluate(&'d self, xpath_expr: &str) -> Result<Value<'d>, ReadError> {
         let xpath = build_xpath(&self.factory, xpath_expr)?;
-        xpath.evaluate(self.context, self.node).map_err(|err| ReadError::from(err))
+        xpath
+            .evaluate(self.context, self.node)
+            .map_err(ReadError::from)
     }
 }
 
