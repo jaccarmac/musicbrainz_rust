@@ -44,6 +44,21 @@ pub enum AreaType {
     Island,
 }
 
+impl AreaType {
+    fn parse_str(s: &str) -> Result<Self, ReadError> {
+        match s {
+            "Country" => Ok(AreaType::Country),
+            "Subdivision" => Ok(AreaType::Subdivision),
+            "County" => Ok(AreaType::County),
+            "Muncipality" => Ok(AreaType::Muncipality),
+            "City" => Ok(AreaType::City),
+            "District" => Ok(AreaType::District),
+            "Island" => Ok(AreaType::Island),
+            s => Err(ReadError::InvalidData(format!("Invalid `AreaType`: '{}'", s).to_string())),
+        }
+    }
+}
+
 /// A geographic region or settlement.
 /// This is one of the `core entities` of MusicBrainz.
 ///
@@ -71,16 +86,7 @@ impl Area {
     {
         let mbid = reader.read_mbid("//mb:area/@id")?;
 
-        let area_type = match reader.evaluate("//mb:area/@type")?.string().as_ref() {
-            "Country" => Some(AreaType::Country),
-            "Subdivision" => Some(AreaType::Subdivision),
-            "County" => Some(AreaType::County),
-            "Muncipality" => Some(AreaType::Muncipality),
-            "City" => Some(AreaType::City),
-            "District" => Some(AreaType::District),
-            "Island" => Some(AreaType::Island),
-            _ => None,
-        };
+        let area_type = AreaType::parse_str(&reader.evaluate("//mb:area/@type")?.string()[..]).ok();
         let name = reader.evaluate("//mb:area/mb:name/text()")?.string();
         let sort_name = reader
             .evaluate("//mb:area/mb:sort-name/text()")?
@@ -94,11 +100,7 @@ impl Area {
                name: name,
                sort_name: sort_name,
                area_type: area_type,
-               iso_3166: if iso_3166_str.is_empty() {
-                   None
-               } else {
-                   Some(iso_3166_str)
-               },
+               iso_3166: non_empty_string(iso_3166_str),
            })
     }
 }
