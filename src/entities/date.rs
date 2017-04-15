@@ -3,7 +3,14 @@ use std::num::ParseIntError;
 
 /// The `Date` type used by the `musicbrainz` crate.
 /// It allows the representation of partial dates.
-/// TODO: Write conversions to and from `chrono` date types for interoperability.
+// TODO: Write conversions to and from `chrono` date types for interoperability.
+// TODO: Consider checking the field values for validity (i.e. month and day within appropriate
+// ranges). To make sure only valid instances are created we might actually need to do something
+// like it is described here: http://stackoverflow.com/a/28090996 because in general Rust enum
+// constructors cannot be made private.
+// (And for the users of the `Date` type it actually shouldn't even matter that much if they can
+// pattern match on it or not, it's just more about properly representing the data returned from
+// the MusicBrainz API.)
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Date {
     /// Date with resolution up to a year.
@@ -17,7 +24,7 @@ pub enum Date {
 
 impl Date {
     /// Return the year from the date.
-    fn year(&self) -> u16 {
+    pub fn year(&self) -> u16 {
         match *self {
             Date::Year { year } => year,
             Date::Month { year, .. } => year,
@@ -27,7 +34,7 @@ impl Date {
 
     /// Return the month from the date.
     /// If it is not present, 0 will be returned.
-    fn month(&self) -> u8 {
+    pub fn month(&self) -> u8 {
         match *self {
             Date::Year { .. } => 0,
             Date::Month { month, .. } => month,
@@ -37,7 +44,7 @@ impl Date {
 
     /// Return the day from the date.
     /// If it is not present, 0 will be returned.
-    fn day(&self) -> u8 {
+    pub fn day(&self) -> u8 {
         match *self {
             Date::Year { .. } => 0,
             Date::Month { .. } => 0,
