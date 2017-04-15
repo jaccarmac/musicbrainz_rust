@@ -4,6 +4,7 @@ use std::num::ParseIntError;
 /// The `Date` type used by the `musicbrainz` crate.
 /// It allows the representation of partial dates.
 /// TODO: Write conversions to and from `chrono` date types for interoperability.
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Date {
     /// Date with resolution up to a year.
     Year { year: u16 },
@@ -128,4 +129,3 @@ mod tests {
         assert_eq!(fail3.err().unwrap(), err);
     }
 }
-

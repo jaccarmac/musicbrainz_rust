@@ -1,5 +1,6 @@
 use uuid;
 use sxd_xpath::Value::Nodeset;
+use std::str::FromStr;
 
 mod xpath_reader;
 use self::xpath_reader::*;
@@ -12,16 +13,10 @@ pub use self::date::{Date, ParseDateError};
 /// TODO: Figure out if it makes more sense to keep
 pub type Mbid = uuid::Uuid;
 
-// pub trait Resource {
-// TODO: add inc= support
-// fn lookup(mbid: &Mbid, inc: Option<()>);
-//
-//    pub
-// }
-//
-
-
-
+/// Takes a string and returns an option only containing the string if it was not empty.
+fn non_empty_string(s: String) -> Option<String> {
+    if s.is_empty() { None } else { Some(s) }
+}
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum AreaType {
@@ -214,22 +209,12 @@ impl Artist {
         };
 
         // Get IPI code.
-        let ipi_str = reader.evaluate("//mb:artist/mb:ipi/text()")?.string();
-        let ipi = if ipi_str.is_empty() {
-            None
-        } else {
-            Some(ipi_str)
-        };
+        let ipi = non_empty_string(reader.evaluate("//mb:artist/mb:ipi/text()")?.string());
 
         // Get ISNI code.
-        let isni_str = reader
-            .evaluate("//mb:artist/mb:isni-list/mb:isni/text()")?
-            .string();
-        let isni = if isni_str.is_empty() {
-            None
-        } else {
-            Some(isni_str)
-        };
+        let isni = non_empty_string(reader
+                                        .evaluate("//mb:artist/mb:isni-list/mb:isni/text()")?
+                                        .string());
 
         Ok(Artist {
                mbid: mbid,
@@ -248,6 +233,7 @@ pub struct Event {}
 
 pub struct Instrument {}
 
+#[derive(Debug, Eq, PartialEq)]
 pub enum LabelType {
     /// The main `LabelType` in the MusicBrainz database.
     /// That is a brand (and trademark) associated with the marketing of a release.
@@ -325,6 +311,56 @@ pub struct Label {
 
     pub date_begin: Option<Date>,
     pub date_end: Option<Date>,
+}
+
+impl Label {
+    fn read_xml<'d, R>(reader: &'d R) -> Result<Label, ReadError>
+        where R: XPathReader<'d>
+    {
+        let mbid = reader.read_mbid("//mb:label/@id")?;
+        let name = reader.evaluate("//mb:label/mb:name/text()")?.string();
+        let sort_name = reader
+            .evaluate("//mb:label/mb:sort-name/text()")?
+            .string();
+        let disambiguation = non_empty_string(reader
+                                                  .evaluate("//mb:label/mb:disambiguation/text()")?
+                                                  .string());
+        let aliases = Vec::new(); // TODO
+        let label_code = non_empty_string(reader
+                                              .evaluate("//mb:label/mb:label-code/text()")?
+                                              .string());
+        let label_type = LabelType::read_str(&reader.evaluate("//mb:label/@type")?.string()[..])?;
+        let country = non_empty_string(reader
+                                           .evaluate("//mb:label/mb:country/text()")?
+                                           .string());
+        let ipi_code = None; // TODO
+        let isni_code = None; // TODO
+        let date_begin = Date::from_str(&reader
+                                             .evaluate("//mb:label/mb:life-span/mb:begin/text()")?
+                                             .string()
+                                             [..])
+                .ok();
+        let date_end = Date::from_str(&reader
+                                           .evaluate("//mb:label/mb:life-span/mb:end/text()")?
+                                           .string()
+                                           [..])
+                .ok();
+
+        Ok(Label {
+               mbid: mbid,
+               name: name,
+               sort_name: sort_name,
+               disambiguation: disambiguation,
+               aliases: aliases,
+               label_code: label_code,
+               label_type: label_type,
+               country: country,
+               ipi_code: ipi_code,
+               isni_code: isni_code,
+               date_begin: date_begin,
+               date_end: date_end,
+           })
+    }
 }
 
 pub struct Recording {}
@@ -470,5 +506,22 @@ mod tests {
     #[test]
     fn label_read_xml1() {
         let xml = r#"<?xml version="1.0" encoding="UTF-8"?><metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#"><label id="c029628b-6633-439e-bcee-ed02e8a338f7" type="Original Production" type-id="7aaa37fe-2def-3476-b359-80245850062d"><name>EMI</name><sort-name>EMI</sort-name><disambiguation>EMI Records, since 1972</disambiguation><label-code>542</label-code><country>GB</country><area id="8a754a16-0027-3a29-b6d7-2b40ea0481ed"><name>United Kingdom</name><sort-name>United Kingdom</sort-name><iso-3166-1-code-list><iso-3166-1-code>GB</iso-3166-1-code></iso-3166-1-code-list></area><life-span><begin>1972</begin></life-span></label></metadata>"#;
+        let reader = XPathStrReader::new(xml).unwrap();
+        let label = Label::read_xml(&reader).unwrap();
+
+        assert_eq!(label.mbid,
+                   Mbid::parse_str("c029628b-6633-439e-bcee-ed02e8a338f7").unwrap());
+        assert_eq!(label.name, "EMI".to_string());
+        assert_eq!(label.sort_name, "EMI".to_string());
+        assert_eq!(label.disambiguation,
+                   Some("EMI Records, since 1972".to_string()));
+        assert_eq!(label.aliases, Vec::<String>::new());
+        assert_eq!(label.label_code, Some("542".to_string()));
+        assert_eq!(label.label_type, LabelType::ProductionOriginal);
+        assert_eq!(label.country, Some("GB".to_string()));
+        assert_eq!(label.ipi_code, None);
+        assert_eq!(label.isni_code, None);
+        assert_eq!(label.date_begin, Some(Date::Year { year: 1972 }));
+        assert_eq!(label.date_end, None);
     }
 }
