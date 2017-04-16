@@ -16,8 +16,10 @@ pub use self::refs::{AreaRef, ArtistRef, LabelRef};
 
 mod area;
 mod label;
+mod recording;
 pub use self::area::{Area, AreaType};
 pub use self::label::Label;
+pub use self::recording::Recording;
 
 /// Identifier for entities in the MusicBrainz database.
 pub type Mbid = uuid::Uuid;
@@ -233,64 +235,6 @@ impl FromStr for LabelType {
     }
 }
 
-/// Represents a unique audio that has been used to produce at least one released track through
-/// copying or mastering.
-#[derive(Clone, Debug)]
-pub struct Recording {
-    /// MBID of the entity in the MusicBrainz database.
-    pub mbid: Mbid,
-
-    /// The title of the recording.
-    pub title: String,
-
-    /// The artists that the recording is primarily credited to.
-    pub artists: Vec<ArtistRef>,
-
-    /// Approximation of the length of the recording, calculated from the tracks using it.
-    pub duration: Duration,
-
-    /// ISRC (International Standard Recording Code) assigned to the recording.
-    pub isrc_code: Option<String>,
-
-    /// Disambiguation comment.
-    pub disambiguation: Option<String>,
-
-    /// Annotation if present.
-    pub annotation: Option<String>,
-}
-
-impl FromXml for Recording {
-    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
-        where R: XPathReader<'d>
-    {
-        let artists = Vec::new();
-        Ok(Recording {
-               mbid: reader.read_mbid(".//mb:recording/@id")?,
-               title: reader.evaluate(".//mb:recording/mb:title/text()")?.string(),
-               artists: artists,
-               duration: Duration::from_millis(reader
-                                                   .evaluate(".//mb:recording/mb:length/text()")?
-                                                   .string()
-                                                   .parse::<u64>()?),
-               isrc_code: None, // TODO,
-               disambiguation:
-                   non_empty_string(reader
-                                        .evaluate(".//mb:recording/mb:disambiguation/text()")?
-                                        .string()),
-               annotation: non_empty_string(reader
-                                                .evaluate(".//mb:recording/mb:annotation/text()")?
-                                                .string()),
-           })
-    }
-}
-
-impl Resource for Recording {
-    fn get_url(mbid: &str) -> String {
-        format!("https://musicbrainz.org/ws/2/recording/{}?inc=artists+",
-                mbid)
-                .to_string()
-    }
-}
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum ReleaseStatus {
