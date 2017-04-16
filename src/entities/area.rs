@@ -125,4 +125,3 @@ mod tests {
         assert_eq!(result.iso_3166, Some("JP".to_string()));
     }
 }
-

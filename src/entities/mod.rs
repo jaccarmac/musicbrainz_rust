@@ -145,10 +145,11 @@ impl FromXml for Artist {
             _ => None,
         };
 
-        let aliases: Vec<String> = match reader.evaluate("//mb:artist/mb:alias-list/mb:alias/text()")? {
-            Nodeset(nodeset) => nodeset.iter().map(|node| node.string_value()).collect(),
-            _ => Vec::new()
-        };
+        let aliases: Vec<String> =
+            match reader.evaluate("//mb:artist/mb:alias-list/mb:alias/text()")? {
+                Nodeset(nodeset) => nodeset.iter().map(|node| node.string_value()).collect(),
+                _ => Vec::new(),
+            };
 
 
         Ok(Artist {

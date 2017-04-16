@@ -55,10 +55,11 @@ impl FromXml for Label {
     fn from_xml<'d, R>(reader: &'d R) -> Result<Label, ReadError>
         where R: XPathReader<'d>
     {
-        let aliases: Vec<String> = match reader.evaluate("//mb:label/mb:alias-list/mb:alias/text()")? {
-            Nodeset(nodeset) => nodeset.iter().map(|node| node.string_value()).collect(),
-            _ => Vec::new()
-        };
+        let aliases: Vec<String> =
+            match reader.evaluate("//mb:label/mb:alias-list/mb:alias/text()")? {
+                Nodeset(nodeset) => nodeset.iter().map(|node| node.string_value()).collect(),
+                _ => Vec::new(),
+            };
 
         Ok(Label {
                mbid: reader.read_mbid("//mb:label/@id")?,
@@ -123,7 +124,8 @@ mod tests {
         let reader = XPathStrReader::new(xml).unwrap();
         let label = Label::from_xml(&reader).unwrap();
 
-        let mut expected = vec!["Avex Trax Japan".to_string(), "エイベックス・トラックス".to_string()];
+        let mut expected = vec!["Avex Trax Japan".to_string(),
+                                "エイベックス・トラックス".to_string()];
         expected.sort();
         let mut actual = label.aliases.clone();
         actual.sort();
@@ -131,4 +133,3 @@ mod tests {
         assert_eq!(actual, expected);
     }
 }
-
