@@ -14,8 +14,12 @@ pub use self::date::{Date, ParseDateError};
 mod refs;
 pub use self::refs::{AreaRef, ArtistRef, LabelRef};
 
+mod area;
+mod label;
+pub use self::area::{Area, AreaType};
+pub use self::label::Label;
+
 /// Identifier for entities in the MusicBrainz database.
-/// TODO: Figure out if it makes more sense to keep
 pub type Mbid = uuid::Uuid;
 
 /// Takes a string and returns an option only containing the string if it was not empty.
@@ -34,86 +38,7 @@ pub trait Resource {
     fn get_url(mbid: &str) -> String;
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum AreaType {
-    /// Areas included (or previously included) in ISO 3166-1.
-    Country,
-
-    /// Main administrative divisions of a countryr
-    Subdivision,
-
-    /// Smaller administrative divisions of a country, which are not one of the main administrative
-    /// divisions but are also not muncipalities.
-    County,
-
-    /// Small administrative divisions. Urban muncipalities often contain only a single city and a
-    /// few surrounding villages, while rural muncipalities often group several villages together.
-    Muncipality,
-
-    /// Settlements of any size, including towns and villages.
-    City,
-
-    /// Used for a division of a large city.
-    District,
-
-    /// Islands and atolls which don't form subdivisions of their own.
-    Island,
-}
-
-impl FromStr for AreaType {
-    type Err = ReadError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "Country" => Ok(AreaType::Country),
-            "Subdivision" => Ok(AreaType::Subdivision),
-            "County" => Ok(AreaType::County),
-            "Muncipality" => Ok(AreaType::Muncipality),
-            "City" => Ok(AreaType::City),
-            "District" => Ok(AreaType::District),
-            "Island" => Ok(AreaType::Island),
-            s => Err(ReadError::InvalidData(format!("Invalid `AreaType`: '{}'", s).to_string())),
-        }
-    }
-}
-
-/// A geographic region or settlement.
-/// The exact type is distinguished by the `area_type` field.
-/// This is one of the *core entities* of MusicBrainz.
-///
-/// https://musicbrainz.org/doc/Area
-pub struct Area {
-    /// MBID of the entity in the MusicBrainz database.
-    pub mbid: Mbid,
-
-    /// The name of the area.
-    pub name: String,
-
-    /// Name that is supposed to be used for sorting, containing only latin characters.
-    pub sort_name: String,
-
-    /// The type of the area.
-    pub area_type: AreaType,
-
-    /// ISO 3166 code, assigned to countries and subdivisions.
-    pub iso_3166: Option<String>,
-}
-
-
-impl FromXml for Area {
-    fn from_xml<'d, R>(reader: &'d R) -> Result<Area, ReadError>
-        where R: XPathReader<'d>
-    {
-        Ok(Area {
-               mbid: reader.read_mbid("//mb:area/@id")?,
-               name: reader.evaluate("//mb:area/mb:name/text()")?.string(),
-               sort_name: reader.evaluate("//mb:area/mb:sort-name/text()")?.string(),
-               area_type: reader.evaluate("//mb:area/@type")?.string().parse::<AreaType>()?,
-               iso_3166: non_empty_string(reader.evaluate("//mb:area/mb:iso-3166-1-code-list/mb:iso-3166-1-code/text()")?.string()),
-           })
-    }
-}
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ArtistType {
     Person,
     Group,
@@ -299,85 +224,6 @@ impl FromStr for LabelType {
             "RightsSociety" => Ok(LabelType::RightsSociety),
             s => Err(ReadError::InvalidData(format!("Invalid `LabelType`: '{}'", s).to_string())),
         }
-    }
-}
-
-/// A label entity in the MusicBrainz database.
-/// There is quite some controversy in the music industry what a 'label' constitutes.
-///
-/// For a complete disambiguation see the `LabelType` enum. The labels in MusicBrainz are mostly
-/// imprints.
-pub struct Label {
-    /// MBID of the entity in the MusicBrainz database.
-    pub mbid: Mbid,
-
-    /// The official name of the label.
-    pub name: String,
-
-    /// Version of the `name` converted to latin characters for sorting.
-    pub sort_name: String,
-
-    /// If there are multiple labels with the same name in the database, a short disambiguation
-    /// comment is provided which allows to differentiate the entities.
-    pub disambiguation: Option<String>,
-
-    /// Variants of the name mainly used as search help.
-    /// These can be variants, spellings of names, missing titles and common misspellings.
-    pub aliases: Vec<String>,
-
-    /// LC code of the label, as issued by the IFPI.
-    pub label_code: Option<String>,
-
-    /// Describes the main activity of the label.
-    pub label_type: LabelType,
-
-    /// ISO 3166 country of origin for the label.
-    pub country: Option<String>,
-
-    /// Identifying number of the label as assigned by the CISAC database.
-    pub ipi_code: Option<String>,
-
-    /// ISNI code of the label.
-    pub isni_code: Option<String>,
-
-    /// TODO: docs
-    pub begin_date: Option<Date>,
-
-    /// TODO: docs
-    pub end_date: Option<Date>,
-}
-
-impl FromXml for Label {
-    fn from_xml<'d, R>(reader: &'d R) -> Result<Label, ReadError>
-        where R: XPathReader<'d>
-    {
-        Ok(Label {
-               mbid: reader.read_mbid("//mb:label/@id")?,
-               name: reader.evaluate("//mb:label/mb:name/text()")?.string(),
-               sort_name: reader.evaluate("//mb:label/mb:sort-name/text()")?.string(),
-               disambiguation:
-                   non_empty_string(reader
-                                        .evaluate("//mb:label/mb:disambiguation/text()")?
-                                        .string()),
-               aliases: Vec::new(), // TODO
-               label_code: non_empty_string(reader
-                                                .evaluate("//mb:label/mb:label-code/text()")?
-                                                .string()),
-               label_type: reader.evaluate("//mb:label/@type")?.string().parse::<LabelType>()?,
-               country: non_empty_string(reader.evaluate("//mb:label/mb:country/text()")?.string()),
-               ipi_code: None, // TODO
-               isni_code: None, // TODO
-               begin_date: reader
-                   .evaluate("//mb:label/mb:life-span/mb:begin/text()")?
-                   .string()
-                   .parse::<Date>()
-                   .ok(),
-               end_date: reader
-                   .evaluate("//mb:label/mb:life-span/mb:end/text()")?
-                   .string()
-                   .parse::<Date>()
-                   .ok(),
-           })
     }
 }
 
@@ -597,40 +443,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn area_read_xml1() {
-        let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
-                    <metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#">
-                        <area id="a1411661-be21-4290-8dc1-50f3d8e3ea67" type="City" type-id="6fd8f29a-3d0a-32fc-980d-ea697b69da78">
-                            <name>Honolulu</name>
-                            <sort-name>Honolulu</sort-name>
-                        </area>
-                    </metadata>"#;
-        let reader = XPathStrReader::new(xml).unwrap();
-        let result = Area::from_xml(&reader).unwrap();
-
-        assert_eq!(result.mbid,
-                   Mbid::parse_str("a1411661-be21-4290-8dc1-50f3d8e3ea67").unwrap());
-        assert_eq!(result.name, "Honolulu".to_string());
-        assert_eq!(result.sort_name, "Honolulu".to_string());
-        assert_eq!(result.area_type, AreaType::City);
-        assert_eq!(result.iso_3166, None);
-    }
-
-    #[test]
-    fn area_read_xml2() {
-        let xml = r#"<?xml version="1.0" encoding="UTF-8"?><metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#"><area type-id="06dd0ae4-8c74-30bb-b43d-95dcedf961de" type="Country" id="2db42837-c832-3c27-b4a3-08198f75693c"><name>Japan</name><sort-name>Japan</sort-name><iso-3166-1-code-list><iso-3166-1-code>JP</iso-3166-1-code></iso-3166-1-code-list></area></metadata>"#;
-        let reader = XPathStrReader::new(xml).unwrap();
-        let result = Area::from_xml(&reader).unwrap();
-
-        assert_eq!(result.mbid,
-                   Mbid::parse_str("2db42837-c832-3c27-b4a3-08198f75693c").unwrap());
-        assert_eq!(result.name, "Japan".to_string());
-        assert_eq!(result.sort_name, "Japan".to_string());
-        assert_eq!(result.area_type, AreaType::Country);
-        assert_eq!(result.iso_3166, Some("JP".to_string()));
-    }
-
-    #[test]
     fn artist_read_xml1() {
         // url: https://musicbrainz.org/ws/2/artist/90e7c2f9-273b-4d6c-a662-ab2d73ea4b8e?inc=aliases
         let xml = r#"<?xml version="1.0" encoding="UTF-8"?><metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#"><artist type-id="e431f5f6-b5d2-343d-8b36-72607fffb74b" id="90e7c2f9-273b-4d6c-a662-ab2d73ea4b8e" type="Group"><name>NECRONOMIDOL</name><sort-name>NECRONOMIDOL</sort-name><country>JP</country><area id="2db42837-c832-3c27-b4a3-08198f75693c"><name>Japan</name><sort-name>Japan</sort-name><iso-3166-1-code-list><iso-3166-1-code>JP</iso-3166-1-code></iso-3166-1-code-list></area><begin-area id="8dc97297-ac95-4d33-82bc-e07fab26fb5f"><name>Tokyo</name><sort-name>Tokyo</sort-name><iso-3166-2-code-list><iso-3166-2-code>JP-13</iso-3166-2-code></iso-3166-2-code-list></begin-area><life-span><begin>2014-03</begin></life-span></artist></metadata>"#;
@@ -699,28 +511,6 @@ mod tests {
         assert_eq!(result.gender, Some(Gender::Female));
         assert_eq!(result.ipi_code, Some("00519338442".to_string()));
         assert_eq!(result.isni_code, Some("0000000120254559".to_string()));
-    }
-
-    #[test]
-    fn label_read_xml1() {
-        let xml = r#"<?xml version="1.0" encoding="UTF-8"?><metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#"><label id="c029628b-6633-439e-bcee-ed02e8a338f7" type="Original Production" type-id="7aaa37fe-2def-3476-b359-80245850062d"><name>EMI</name><sort-name>EMI</sort-name><disambiguation>EMI Records, since 1972</disambiguation><label-code>542</label-code><country>GB</country><area id="8a754a16-0027-3a29-b6d7-2b40ea0481ed"><name>United Kingdom</name><sort-name>United Kingdom</sort-name><iso-3166-1-code-list><iso-3166-1-code>GB</iso-3166-1-code></iso-3166-1-code-list></area><life-span><begin>1972</begin></life-span></label></metadata>"#;
-        let reader = XPathStrReader::new(xml).unwrap();
-        let label = Label::from_xml(&reader).unwrap();
-
-        assert_eq!(label.mbid,
-                   Mbid::parse_str("c029628b-6633-439e-bcee-ed02e8a338f7").unwrap());
-        assert_eq!(label.name, "EMI".to_string());
-        assert_eq!(label.sort_name, "EMI".to_string());
-        assert_eq!(label.disambiguation,
-                   Some("EMI Records, since 1972".to_string()));
-        assert_eq!(label.aliases, Vec::<String>::new());
-        assert_eq!(label.label_code, Some("542".to_string()));
-        assert_eq!(label.label_type, LabelType::ProductionOriginal);
-        assert_eq!(label.country, Some("GB".to_string()));
-        assert_eq!(label.ipi_code, None);
-        assert_eq!(label.isni_code, None);
-        assert_eq!(label.begin_date, Some(Date::Year { year: 1972 }));
-        assert_eq!(label.end_date, None);
     }
 
     #[test]
