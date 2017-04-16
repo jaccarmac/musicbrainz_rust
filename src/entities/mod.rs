@@ -18,6 +18,12 @@ fn non_empty_string(s: String) -> Option<String> {
     if s.is_empty() { None } else { Some(s) }
 }
 
+pub trait FromXml
+    where Self: Sized
+{
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError> where R: XPathReader<'d>;
+}
+
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum AreaType {
     /// Areas included (or previously included) in ISO 3166-1.
@@ -44,8 +50,9 @@ pub enum AreaType {
     Island,
 }
 
-impl AreaType {
-    fn parse_str(s: &str) -> Result<Self, ReadError> {
+impl FromStr for AreaType {
+    type Err = ReadError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "Country" => Ok(AreaType::Country),
             "Subdivision" => Ok(AreaType::Subdivision),
@@ -60,7 +67,8 @@ impl AreaType {
 }
 
 /// A geographic region or settlement.
-/// This is one of the `core entities` of MusicBrainz.
+/// The exact type is distinguished by the `area_type` field.
+/// This is one of the *core entities* of MusicBrainz.
 ///
 /// https://musicbrainz.org/doc/Area
 pub struct Area {
@@ -70,23 +78,27 @@ pub struct Area {
     /// The name of the area.
     pub name: String,
 
+    /// Name that is supposed to be used for sorting, containing only latin characters.
     pub sort_name: String,
 
     /// The type of the area.
-    pub area_type: Option<AreaType>,
+    pub area_type: AreaType,
 
     /// ISO 3166 code, assigned to countries and subdivisions.
     pub iso_3166: Option<String>,
 }
 
 
-impl Area {
-    fn read_xml<'d, R>(reader: &'d R) -> Result<Area, ReadError>
+impl FromXml for Area {
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Area, ReadError>
         where R: XPathReader<'d>
     {
         let mbid = reader.read_mbid("//mb:area/@id")?;
 
-        let area_type = AreaType::parse_str(&reader.evaluate("//mb:area/@type")?.string()[..]).ok();
+        let area_type = reader
+            .evaluate("//mb:area/@type")?
+            .string()
+            .parse::<AreaType>()?;
         let name = reader.evaluate("//mb:area/mb:name/text()")?.string();
         let sort_name = reader
             .evaluate("//mb:area/mb:sort-name/text()")?
@@ -113,6 +125,24 @@ pub enum ArtistType {
     Choir,
     Character,
     Other,
+}
+
+impl FromStr for ArtistType {
+    type Err = ReadError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Person" => Ok(ArtistType::Person),
+            "Group" => Ok(ArtistType::Group),
+            "Orchestra" => Ok(ArtistType::Orchestra),
+            "Choir" => Ok(ArtistType::Choir),
+            "Character" => Ok(ArtistType::Character),
+            "Other" => Ok(ArtistType::Other),
+            t => {
+                return Err(ReadError::InvalidData(format!("Unknown artist type: {}", t)
+                                                      .to_string()))
+            }
+        }
+    }
 }
 
 /// TODO: Find all possible variants. (It says "male, female or neither" in the docs but what does
@@ -144,6 +174,7 @@ pub struct Artist {
     /// If the Artist is a single person this indicates their gender.
     pub gender: Option<Gender>,
 
+    /*
     /// The area an artist is primarily identified with. Often, but not always, birth/formation
     /// country of the artist/group.
     ///
@@ -154,6 +185,7 @@ pub struct Artist {
     /// (But we could also just leave it as is and let API clients deal with extracting all the
     /// optional values.)
     pub area: Option<Area>,
+    */
 
     // TODO: begin and end dates
     pub ipi_code: Option<String>,
@@ -161,28 +193,19 @@ pub struct Artist {
                                     * TODO disambiguation comment */
 }
 
-impl Artist {
-    fn read_xml(xml: &str) -> Result<Self, ReadError> {
-        let context = default_musicbrainz_context();
-        let reader = XPathStrReader::new(xml)?;
-
+impl FromXml for Artist {
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
+        where R: XPathReader<'d>
+    {
         let mbid = reader.read_mbid("//mb:artist/@id")?;
         let name = reader.evaluate("//mb:artist/mb:name/text()")?.string();
         let sort_name = reader
             .evaluate("//mb:artist/mb:sort-name/text()")?
             .string();
-        let artist_type = match reader.evaluate("//mb:artist/@type")?.string().as_ref() {
-            "Person" => ArtistType::Person,
-            "Group" => ArtistType::Group,
-            "Orchestra" => ArtistType::Orchestra,
-            "Choir" => ArtistType::Choir,
-            "Character" => ArtistType::Character,
-            "Other" => ArtistType::Other,
-            t => {
-                return Err(ReadError::InvalidData(format!("Unknown artist type: {}", t)
-                                                      .to_string()))
-            }
-        };
+        let artist_type = reader
+            .evaluate("//mb:artist/@type")?
+            .string()
+            .parse::<ArtistType>()?;
 
         // Get gender.
         let gender = match reader.evaluate("//mb:artist/mb:gender/text()") {
@@ -197,6 +220,7 @@ impl Artist {
             _ => None,
         };
 
+        /*
         // Get area information.
         let area_val = match reader.evaluate("//mb:artist/mb:area")? {
             Nodeset(nodeset) => {
@@ -208,7 +232,7 @@ impl Artist {
                 }
             }
             _ => None,
-        };
+        };*/
 
         // Get IPI code.
         let ipi = non_empty_string(reader.evaluate("//mb:artist/mb:ipi/text()")?.string());
@@ -224,7 +248,6 @@ impl Artist {
                sort_name: sort_name,
                artist_type: artist_type,
                gender: gender,
-               area: area_val,
                ipi_code: ipi,
                isni_code: isni,
            })
@@ -259,9 +282,10 @@ pub enum LabelType {
     RightsSociety,
 }
 
-impl LabelType {
-    fn read_str(data: &str) -> Result<Self, ReadError> {
-        match data {
+impl FromStr for LabelType {
+    type Err = ReadError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
             "Imprint" => Ok(LabelType::Imprint),
             "Original Production" => Ok(LabelType::ProductionOriginal),
             "Bootleg Production" => Ok(LabelType::ProductionBootleg),
@@ -315,8 +339,8 @@ pub struct Label {
     pub date_end: Option<Date>,
 }
 
-impl Label {
-    fn read_xml<'d, R>(reader: &'d R) -> Result<Label, ReadError>
+impl FromXml for Label {
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Label, ReadError>
         where R: XPathReader<'d>
     {
         let mbid = reader.read_mbid("//mb:label/@id")?;
@@ -331,7 +355,10 @@ impl Label {
         let label_code = non_empty_string(reader
                                               .evaluate("//mb:label/mb:label-code/text()")?
                                               .string());
-        let label_type = LabelType::read_str(&reader.evaluate("//mb:label/@type")?.string()[..])?;
+        let label_type = reader
+            .evaluate("//mb:label/@type")?
+            .string()
+            .parse::<LabelType>()?;
         let country = non_empty_string(reader
                                            .evaluate("//mb:label/mb:country/text()")?
                                            .string());
@@ -435,13 +462,13 @@ mod tests {
                         </area>
                     </metadata>"#;
         let reader = XPathStrReader::new(xml).unwrap();
-        let result = Area::read_xml(&reader).unwrap();
+        let result = Area::from_xml(&reader).unwrap();
 
         assert_eq!(result.mbid,
                    Mbid::parse_str("a1411661-be21-4290-8dc1-50f3d8e3ea67").unwrap());
         assert_eq!(result.name, "Honolulu".to_string());
         assert_eq!(result.sort_name, "Honolulu".to_string());
-        assert_eq!(result.area_type, Some(AreaType::City));
+        assert_eq!(result.area_type, AreaType::City);
         assert_eq!(result.iso_3166, None);
     }
 
@@ -449,32 +476,35 @@ mod tests {
     fn area_read_xml2() {
         let xml = r#"<?xml version="1.0" encoding="UTF-8"?><metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#"><area type-id="06dd0ae4-8c74-30bb-b43d-95dcedf961de" type="Country" id="2db42837-c832-3c27-b4a3-08198f75693c"><name>Japan</name><sort-name>Japan</sort-name><iso-3166-1-code-list><iso-3166-1-code>JP</iso-3166-1-code></iso-3166-1-code-list></area></metadata>"#;
         let reader = XPathStrReader::new(xml).unwrap();
-        let result = Area::read_xml(&reader).unwrap();
+        let result = Area::from_xml(&reader).unwrap();
 
         assert_eq!(result.mbid,
                    Mbid::parse_str("2db42837-c832-3c27-b4a3-08198f75693c").unwrap());
         assert_eq!(result.name, "Japan".to_string());
         assert_eq!(result.sort_name, "Japan".to_string());
-        assert_eq!(result.area_type, Some(AreaType::Country));
+        assert_eq!(result.area_type, AreaType::Country);
         assert_eq!(result.iso_3166, Some("JP".to_string()));
     }
 
     #[test]
     fn artist_read_xml1() {
         let xml = r#"<?xml version="1.0" encoding="UTF-8"?><metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#"><artist id="90e7c2f9-273b-4d6c-a662-ab2d73ea4b8e" type-id="e431f5f6-b5d2-343d-8b36-72607fffb74b" type="Group"><name>NECRONOMIDOL</name><sort-name>NECRONOMIDOL</sort-name><country>JP</country><area id="2db42837-c832-3c27-b4a3-08198f75693c"><name>Japan</name><sort-name>Japan</sort-name><iso-3166-1-code-list><iso-3166-1-code>JP</iso-3166-1-code></iso-3166-1-code-list></area><begin-area id="8dc97297-ac95-4d33-82bc-e07fab26fb5f"><name>Tokyo</name><sort-name>Tokyo</sort-name><iso-3166-2-code-list><iso-3166-2-code>JP-13</iso-3166-2-code></iso-3166-2-code-list></begin-area><life-span><begin>2014-03</begin></life-span></artist></metadata>"#;
-        let result = Artist::read_xml(xml).unwrap();
+        let reader = XPathStrReader::new(xml).unwrap();
+        let result = Artist::from_xml(&reader).unwrap();
 
         assert_eq!(result.mbid,
                    Mbid::parse_str("90e7c2f9-273b-4d6c-a662-ab2d73ea4b8e").unwrap());
         assert_eq!(result.name, "NECRONOMIDOL".to_string());
         assert_eq!(result.sort_name, "NECRONOMIDOL".to_string());
 
+        /*
         let area = result.area.unwrap();
         assert_eq!(area.mbid,
                    Mbid::parse_str("2db42837-c832-3c27-b4a3-08198f75693c").unwrap());
         assert_eq!(area.name, "Japan".to_string());
         assert_eq!(area.sort_name, "Japan".to_string());
         assert_eq!(area.iso_3166, Some("JP".to_string()));
+        */
 
         assert_eq!(result.artist_type, ArtistType::Group);
         assert_eq!(result.gender, None);
@@ -485,19 +515,22 @@ mod tests {
     #[test]
     fn artist_read_xml2() {
         let xml = r#"<?xml version="1.0" encoding="UTF-8"?><metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#"><artist type="Person" id="650e7db6-b795-4eb5-a702-5ea2fc46c848" type-id="b6e035f4-3ce9-331c-97df-83397230b0df"><name>Lady Gaga</name><sort-name>Lady Gaga</sort-name><ipi>00519338442</ipi><ipi-list><ipi>00519338442</ipi><ipi>00519338540</ipi></ipi-list><isni-list><isni>0000000120254559</isni></isni-list><gender id="93452b5a-a947-30c8-934f-6a4056b151c2">Female</gender><country>US</country><area id="489ce91b-6658-3307-9877-795b68554c98"><name>United States</name><sort-name>United States</sort-name><iso-3166-1-code-list><iso-3166-1-code>US</iso-3166-1-code></iso-3166-1-code-list></area><begin-area id="261962ea-d8c2-4eaf-a80c-f14376ffadb0"><name>Manhattan</name><sort-name>Manhattan</sort-name></begin-area><life-span><begin>1986-03-28</begin></life-span></artist></metadata>"#;
-        let result = Artist::read_xml(xml).unwrap();
+        let reader = XPathStrReader::new(xml).unwrap();
+        let result = Artist::from_xml(&reader).unwrap();
 
         assert_eq!(result.mbid,
                    Mbid::parse_str("650e7db6-b795-4eb5-a702-5ea2fc46c848").unwrap());
         assert_eq!(result.name, "Lady Gaga".to_string());
         assert_eq!(result.sort_name, "Lady Gaga".to_string());
 
+        /*
         let area = result.area.unwrap();
         assert_eq!(area.mbid,
                    Mbid::parse_str("489ce91b-6658-3307-9877-795b68554c98").unwrap());
         assert_eq!(area.name, "United States".to_string());
         assert_eq!(area.sort_name, "United States".to_string());
         assert_eq!(area.iso_3166, Some("US".to_string()));
+        */
 
         assert_eq!(result.artist_type, ArtistType::Person);
         assert_eq!(result.gender, Some(Gender::Female));
@@ -509,7 +542,7 @@ mod tests {
     fn label_read_xml1() {
         let xml = r#"<?xml version="1.0" encoding="UTF-8"?><metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#"><label id="c029628b-6633-439e-bcee-ed02e8a338f7" type="Original Production" type-id="7aaa37fe-2def-3476-b359-80245850062d"><name>EMI</name><sort-name>EMI</sort-name><disambiguation>EMI Records, since 1972</disambiguation><label-code>542</label-code><country>GB</country><area id="8a754a16-0027-3a29-b6d7-2b40ea0481ed"><name>United Kingdom</name><sort-name>United Kingdom</sort-name><iso-3166-1-code-list><iso-3166-1-code>GB</iso-3166-1-code></iso-3166-1-code-list></area><life-span><begin>1972</begin></life-span></label></metadata>"#;
         let reader = XPathStrReader::new(xml).unwrap();
-        let label = Label::read_xml(&reader).unwrap();
+        let label = Label::from_xml(&reader).unwrap();
 
         assert_eq!(label.mbid,
                    Mbid::parse_str("c029628b-6633-439e-bcee-ed02e8a338f7").unwrap());
