@@ -174,8 +174,14 @@ pub struct Artist {
     /// country of the artist/group.
     pub area: Option<AreaRef>,
 
-    // TODO: begin and end dates
+    // TODO docs
+    pub begin_date: Option<Date>,
+    // TODO docs
+    pub end_date: Option<Date>,
+
+    // TODO docs
     pub ipi_code: Option<String>,
+    // TODO docs
     pub isni_code: Option<String>, /* TODO aliases
                                     * TODO disambiguation comment */
 }
@@ -184,11 +190,6 @@ impl FromXml for Artist {
     fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
         where R: XPathReader<'d>
     {
-        let mbid = reader.read_mbid("//mb:artist/@id")?;
-        let name = reader.evaluate("//mb:artist/mb:name/text()")?.string();
-        let sort_name = reader.evaluate("//mb:artist/mb:sort-name/text()")?.string();
-        let artist_type = reader.evaluate("//mb:artist/@type")?.string().parse::<ArtistType>()?;
-
         // Get gender.
         let gender = match reader.evaluate("//mb:artist/mb:gender/text()") {
             Ok(value) => {
@@ -212,25 +213,30 @@ impl FromXml for Artist {
                     None
                 }
             }
-            _ => None
+            _ => None,
         };
 
-        // Get IPI code.
-        let ipi = non_empty_string(reader.evaluate("//mb:artist/mb:ipi/text()")?.string());
-
-        // Get ISNI code.
-        let isni =
-            non_empty_string(reader.evaluate("//mb:artist/mb:isni-list/mb:isni/text()")?.string());
-
         Ok(Artist {
-               mbid: mbid,
-               name: name,
-               sort_name: sort_name,
-               artist_type: artist_type,
+               mbid: reader.read_mbid("//mb:artist/@id")?,
+               name: reader.evaluate("//mb:artist/mb:name/text()")?.string(),
+               sort_name: reader.evaluate("//mb:artist/mb:sort-name/text()")?.string(),
+               artist_type: reader.evaluate("//mb:artist/@type")?.string().parse::<ArtistType>()?,
                gender: gender,
                area: area,
-               ipi_code: ipi,
-               isni_code: isni,
+               begin_date: reader
+                   .evaluate("//mb:artist/mb:life-span/mb:begin/text()")?
+                   .string()
+                   .parse::<Date>()
+                   .ok(),
+               end_date: reader
+                   .evaluate("//mb:artist/mb:life-span/mb:end/text()")?
+                   .string()
+                   .parse::<Date>()
+                   .ok(),
+               ipi_code: non_empty_string(reader.evaluate("//mb:artist/mb:ipi/text()")?.string()),
+               isni_code: non_empty_string(reader
+                                               .evaluate("//mb:artist/mb:isni-list/mb:isni/text()")?
+                                               .string()),
            })
     }
 }
@@ -318,10 +324,10 @@ pub struct Label {
     pub isni_code: Option<String>,
 
     /// TODO: docs
-    pub date_begin: Option<Date>,
+    pub begin_date: Option<Date>,
 
     /// TODO: docs
-    pub date_end: Option<Date>,
+    pub end_date: Option<Date>,
 }
 
 impl FromXml for Label {
@@ -344,12 +350,12 @@ impl FromXml for Label {
                country: non_empty_string(reader.evaluate("//mb:label/mb:country/text()")?.string()),
                ipi_code: None, // TODO
                isni_code: None, // TODO
-               date_begin: reader
+               begin_date: reader
                    .evaluate("//mb:label/mb:life-span/mb:begin/text()")?
                    .string()
                    .parse::<Date>()
                    .ok(),
-               date_end: reader
+               end_date: reader
                    .evaluate("//mb:label/mb:life-span/mb:end/text()")?
                    .string()
                    .parse::<Date>()
@@ -618,14 +624,19 @@ mod tests {
         assert_eq!(result.name, "NECRONOMIDOL".to_string());
         assert_eq!(result.sort_name, "NECRONOMIDOL".to_string());
 
-        /*
+        assert_eq!(result.begin_date,
+                   Some(Date::Month {
+                          year: 2014,
+                          month: 3,
+                      }));
+        assert_eq!(result.end_date, None);
+
         let area = result.area.unwrap();
         assert_eq!(area.mbid,
                    Mbid::parse_str("2db42837-c832-3c27-b4a3-08198f75693c").unwrap());
         assert_eq!(area.name, "Japan".to_string());
         assert_eq!(area.sort_name, "Japan".to_string());
         assert_eq!(area.iso_3166, Some("JP".to_string()));
-        */
 
         assert_eq!(result.artist_type, ArtistType::Group);
         assert_eq!(result.gender, None);
@@ -643,6 +654,14 @@ mod tests {
                    Mbid::parse_str("650e7db6-b795-4eb5-a702-5ea2fc46c848").unwrap());
         assert_eq!(result.name, "Lady Gaga".to_string());
         assert_eq!(result.sort_name, "Lady Gaga".to_string());
+
+        assert_eq!(result.begin_date,
+                   Some(Date::Day {
+                            year: 1986,
+                            month: 3,
+                            day: 28,
+                        }));
+        assert_eq!(result.end_date, None);
 
         let area = result.area.unwrap();
         assert_eq!(area.mbid,
@@ -675,8 +694,8 @@ mod tests {
         assert_eq!(label.country, Some("GB".to_string()));
         assert_eq!(label.ipi_code, None);
         assert_eq!(label.isni_code, None);
-        assert_eq!(label.date_begin, Some(Date::Year { year: 1972 }));
-        assert_eq!(label.date_end, None);
+        assert_eq!(label.begin_date, Some(Date::Year { year: 1972 }));
+        assert_eq!(label.end_date, None);
     }
 
     #[test]

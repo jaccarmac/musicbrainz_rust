@@ -14,7 +14,7 @@ pub struct AreaRef {
     pub mbid: Mbid,
     pub name: String,
     pub sort_name: String,
-    pub iso_3166: Option<String>
+    pub iso_3166: Option<String>,
 }
 
 impl FromXml for AreaRef {
