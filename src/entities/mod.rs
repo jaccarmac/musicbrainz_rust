@@ -30,6 +30,11 @@ fn non_empty_string(s: String) -> Option<String> {
 pub trait FromXml
     where Self: Sized
 {
+    /// Read an instance of `Self` from the provided `reader`.
+    ///
+    /// Implementors are supposed to scan relative to the provided node and not from the root of
+    /// the document, so sub-schema parsing becomes possible.
+    /// (i.e. they should use `.//axis` XPath expressions instead of `//axis` ones.)
     fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError> where R: XPathReader<'d>;
 }
 
@@ -120,7 +125,7 @@ impl FromXml for Artist {
         where R: XPathReader<'d>
     {
         // Get gender.
-        let gender = match reader.evaluate("//mb:artist/mb:gender/text()") {
+        let gender = match reader.evaluate(".//mb:artist/mb:gender/text()") {
             Ok(value) => {
                 match value.string().as_ref() {
                     "Female" => Some(Gender::Female),
@@ -132,7 +137,7 @@ impl FromXml for Artist {
             _ => None,
         };
 
-        let area = match reader.evaluate("//mb:artist") {
+        let area = match reader.evaluate(".//mb:artist") {
             Ok(Nodeset(nodeset)) => {
                 if let Some(node) = nodeset.document_order_first() {
                     let context = default_musicbrainz_context();
@@ -146,33 +151,33 @@ impl FromXml for Artist {
         };
 
         let aliases: Vec<String> =
-            match reader.evaluate("//mb:artist/mb:alias-list/mb:alias/text()")? {
+            match reader.evaluate(".//mb:artist/mb:alias-list/mb:alias/text()")? {
                 Nodeset(nodeset) => nodeset.iter().map(|node| node.string_value()).collect(),
                 _ => Vec::new(),
             };
 
 
         Ok(Artist {
-               mbid: reader.read_mbid("//mb:artist/@id")?,
-               name: reader.evaluate("//mb:artist/mb:name/text()")?.string(),
-               sort_name: reader.evaluate("//mb:artist/mb:sort-name/text()")?.string(),
+               mbid: reader.read_mbid(".//mb:artist/@id")?,
+               name: reader.evaluate(".//mb:artist/mb:name/text()")?.string(),
+               sort_name: reader.evaluate(".//mb:artist/mb:sort-name/text()")?.string(),
                aliases: aliases,
-               artist_type: reader.evaluate("//mb:artist/@type")?.string().parse::<ArtistType>()?,
+               artist_type: reader.evaluate(".//mb:artist/@type")?.string().parse::<ArtistType>()?,
                gender: gender,
                area: area,
                begin_date: reader
-                   .evaluate("//mb:artist/mb:life-span/mb:begin/text()")?
+                   .evaluate(".//mb:artist/mb:life-span/mb:begin/text()")?
                    .string()
                    .parse::<Date>()
                    .ok(),
                end_date: reader
-                   .evaluate("//mb:artist/mb:life-span/mb:end/text()")?
+                   .evaluate(".//mb:artist/mb:life-span/mb:end/text()")?
                    .string()
                    .parse::<Date>()
                    .ok(),
-               ipi_code: non_empty_string(reader.evaluate("//mb:artist/mb:ipi/text()")?.string()),
+               ipi_code: non_empty_string(reader.evaluate(".//mb:artist/mb:ipi/text()")?.string()),
                isni_code: non_empty_string(reader
-                                               .evaluate("//mb:artist/mb:isni-list/mb:isni/text()")?
+                                               .evaluate(".//mb:artist/mb:isni-list/mb:isni/text()")?
                                                .string()),
            })
     }
@@ -260,20 +265,20 @@ impl FromXml for Recording {
     {
         let artists = Vec::new();
         Ok(Recording {
-               mbid: reader.read_mbid("//mb:recording/@id")?,
-               title: reader.evaluate("//mb:recording/mb:title/text()")?.string(),
+               mbid: reader.read_mbid(".//mb:recording/@id")?,
+               title: reader.evaluate(".//mb:recording/mb:title/text()")?.string(),
                artists: artists,
                duration: Duration::from_millis(reader
-                                                   .evaluate("//mb:recording/mb:length/text()")?
+                                                   .evaluate(".//mb:recording/mb:length/text()")?
                                                    .string()
                                                    .parse::<u64>()?),
                isrc_code: None, // TODO,
                disambiguation:
                    non_empty_string(reader
-                                        .evaluate("//mb:recording/mb:disambiguation/text()")?
+                                        .evaluate(".//mb:recording/mb:disambiguation/text()")?
                                         .string()),
                annotation: non_empty_string(reader
-                                                .evaluate("//mb:recording/mb:annotation/text()")?
+                                                .evaluate(".//mb:recording/mb:annotation/text()")?
                                                 .string()),
            })
     }
@@ -367,7 +372,7 @@ impl FromXml for Release {
         where R: XPathReader<'d>
     {
         let context = default_musicbrainz_context();
-        let artists_node = reader.evaluate("//mb:release/mb:artist-credit/mb:name-credit")?;
+        let artists_node = reader.evaluate(".//mb:release/mb:artist-credit/mb:name-credit")?;
         let artists = match artists_node {
             Nodeset(nodeset) => {
                 let res: Result<Vec<ArtistRef>, ReadError> = nodeset.iter().map(|node| {
@@ -378,7 +383,7 @@ impl FromXml for Release {
             _ => Vec::new(),
         };
 
-        let labels_node = reader.evaluate("//mb:release/mb:label-info-list/mb:label-info")?;
+        let labels_node = reader.evaluate(".//mb:release/mb:label-info-list/mb:label-info")?;
         let labels = match labels_node {
             Nodeset(nodeset) => {
                 let res: Result<Vec<LabelRef>, ReadError> = nodeset.document_order().iter().map(|node| {
@@ -390,31 +395,31 @@ impl FromXml for Release {
         };
 
         Ok(Release {
-               mbid: reader.read_mbid("//mb:release/@id")?,
-               title: reader.evaluate("//mb:release/mb:title/text()")?.string(),
+               mbid: reader.read_mbid(".//mb:release/@id")?,
+               title: reader.evaluate(".//mb:release/mb:title/text()")?.string(),
                artists: artists,
-               date: reader.evaluate("//mb:release/mb:date/text()")?.string().parse::<Date>()?,
-               country: reader.evaluate("//mb:release/mb:country/text()")?.string(),
+               date: reader.evaluate(".//mb:release/mb:date/text()")?.string().parse::<Date>()?,
+               country: reader.evaluate(".//mb:release/mb:country/text()")?.string(),
                labels: labels,
                catalogue_number: non_empty_string(
-                   reader.evaluate("//mb:release/mb:label-info-list/mb:label-info/mb:catalog-number/text()")?.string()),
+                   reader.evaluate(".//mb:release/mb:label-info-list/mb:label-info/mb:catalog-number/text()")?.string()),
                barcode: non_empty_string(reader
-                                             .evaluate("//mb:release/mb:barcode/text()")?
+                                             .evaluate(".//mb:release/mb:barcode/text()")?
                                              .string()),
                status: reader
-                   .evaluate("//mb:release/mb:status/text()")?
+                   .evaluate(".//mb:release/mb:status/text()")?
                    .string()
                    .parse::<ReleaseStatus>()?,
-               packaging: non_empty_string(reader.evaluate("//mb:release/mb:packaging/text()")?.string()),
+               packaging: non_empty_string(reader.evaluate(".//mb:release/mb:packaging/text()")?.string()),
                language: reader
-                   .evaluate("//mb:release/mb:text-representation/mb:language/text()")?
+                   .evaluate(".//mb:release/mb:text-representation/mb:language/text()")?
                    .string(),
                script: reader
-                   .evaluate("//mb:release/mb:text-representation/mb:script/text()")?
+                   .evaluate(".//mb:release/mb:text-representation/mb:script/text()")?
                    .string(),
                disambiguation:
                    non_empty_string(reader
-                                        .evaluate("//mb:release/mb:disambiguation/text()")?
+                                        .evaluate(".//mb:release/mb:disambiguation/text()")?
                                         .string()),
            })
     }

@@ -38,10 +38,12 @@ pub struct Label {
     /// ISNI code of the label.
     pub isni_code: Option<String>,
 
-    /// TODO: docs
+    /// The date when this label was founded.
+    /// (Consult the MusicBrainz manual for disclaimers about the significance of these
+    /// informations.)
     pub begin_date: Option<Date>,
 
-    /// TODO: docs
+    /// The date when this label ceased to exist or its last release ever was released.
     pub end_date: Option<Date>,
 }
 
@@ -56,34 +58,34 @@ impl FromXml for Label {
         where R: XPathReader<'d>
     {
         let aliases: Vec<String> =
-            match reader.evaluate("//mb:label/mb:alias-list/mb:alias/text()")? {
+            match reader.evaluate(".//mb:label/mb:alias-list/mb:alias/text()")? {
                 Nodeset(nodeset) => nodeset.iter().map(|node| node.string_value()).collect(),
                 _ => Vec::new(),
             };
 
         Ok(Label {
-               mbid: reader.read_mbid("//mb:label/@id")?,
-               name: reader.evaluate("//mb:label/mb:name/text()")?.string(),
-               sort_name: reader.evaluate("//mb:label/mb:sort-name/text()")?.string(),
+               mbid: reader.read_mbid(".//mb:label/@id")?,
+               name: reader.evaluate(".//mb:label/mb:name/text()")?.string(),
+               sort_name: reader.evaluate(".//mb:label/mb:sort-name/text()")?.string(),
                disambiguation:
                    non_empty_string(reader
-                                        .evaluate("//mb:label/mb:disambiguation/text()")?
+                                        .evaluate(".//mb:label/mb:disambiguation/text()")?
                                         .string()),
                aliases: aliases,
                label_code: non_empty_string(reader
-                                                .evaluate("//mb:label/mb:label-code/text()")?
+                                                .evaluate(".//mb:label/mb:label-code/text()")?
                                                 .string()),
-               label_type: reader.evaluate("//mb:label/@type")?.string().parse::<LabelType>()?,
-               country: non_empty_string(reader.evaluate("//mb:label/mb:country/text()")?.string()),
+               label_type: reader.evaluate(".//mb:label/@type")?.string().parse::<LabelType>()?,
+               country: non_empty_string(reader.evaluate(".//mb:label/mb:country/text()")?.string()),
                ipi_code: None, // TODO
                isni_code: None, // TODO
                begin_date: reader
-                   .evaluate("//mb:label/mb:life-span/mb:begin/text()")?
+                   .evaluate(".//mb:label/mb:life-span/mb:begin/text()")?
                    .string()
                    .parse::<Date>()
                    .ok(),
                end_date: reader
-                   .evaluate("//mb:label/mb:life-span/mb:end/text()")?
+                   .evaluate(".//mb:label/mb:life-span/mb:end/text()")?
                    .string()
                    .parse::<Date>()
                    .ok(),

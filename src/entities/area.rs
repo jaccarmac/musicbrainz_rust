@@ -1,6 +1,4 @@
-use std::str::FromStr;
 use super::*;
-use self::xpath_reader::{XPathReader, XPathStrReader};
 
 /// Specifies what a specific `Area` instance actually is.
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -72,11 +70,11 @@ impl FromXml for Area {
         where R: XPathReader<'d>
     {
         Ok(Area {
-               mbid: reader.read_mbid("//mb:area/@id")?,
-               name: reader.evaluate("//mb:area/mb:name/text()")?.string(),
-               sort_name: reader.evaluate("//mb:area/mb:sort-name/text()")?.string(),
-               area_type: reader.evaluate("//mb:area/@type")?.string().parse::<AreaType>()?,
-               iso_3166: non_empty_string(reader.evaluate("//mb:area/mb:iso-3166-1-code-list/mb:iso-3166-1-code/text()")?.string()),
+               mbid: reader.read_mbid(".//mb:area/@id")?,
+               name: reader.evaluate(".//mb:area/mb:name/text()")?.string(),
+               sort_name: reader.evaluate(".//mb:area/mb:sort-name/text()")?.string(),
+               area_type: reader.evaluate(".//mb:area/@type")?.string().parse::<AreaType>()?,
+               iso_3166: non_empty_string(reader.evaluate(".//mb:area/mb:iso-3166-1-code-list/mb:iso-3166-1-code/text()")?.string()),
            })
     }
 }
