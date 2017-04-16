@@ -143,4 +143,3 @@ impl From<::std::num::ParseIntError> for ReadError {
         ReadError::InvalidData(format!("Failed parsing Int value: {:?}", e).to_string())
     }
 }
-

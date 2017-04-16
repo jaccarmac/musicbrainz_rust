@@ -402,16 +402,20 @@ pub struct Recording {
 
 impl FromXml for Recording {
     fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
-        where R: XPathReader<'d> {
+        where R: XPathReader<'d>
+    {
         let artists = Vec::new();
         Ok(Recording {
-            mbid: reader.read_mbid("//mb:recording/@id")?,
-            title: reader.evaluate("//mb:recording/mb:title/text()")?.string(),
-            artists: artists,
-            duration: Duration::from_millis(reader.evaluate("//mb:recording/mb:length/text()")?.string().parse::<u64>()?),
-            isrc_code: None, // TODO,
-            disambiguation: None, // TODO
-        })
+               mbid: reader.read_mbid("//mb:recording/@id")?,
+               title: reader.evaluate("//mb:recording/mb:title/text()")?.string(),
+               artists: artists,
+               duration: Duration::from_millis(reader
+                                                   .evaluate("//mb:recording/mb:length/text()")?
+                                                   .string()
+                                                   .parse::<u64>()?),
+               isrc_code: None, // TODO,
+               disambiguation: None, // TODO
+           })
     }
 }
 
@@ -723,37 +727,36 @@ mod tests {
         // We check for the things we didn't check in the previous test.
         assert_eq!(release.packaging, Some("Jewel Case".to_string()));
         assert_eq!(release.catalogue_number, Some("0251766489".to_string()));
-        assert_eq!(release.labels, vec![
-            LabelRef {
-                mbid: Mbid::parse_str("376d9b4d-8cdd-44be-bc0f-ed5dfd2d2340").unwrap(),
-                name: "Cherrytree Records".to_string(),
-                sort_name: "Cherrytree Records".to_string(),
-                label_code: None
-            },
-            LabelRef {
-                mbid: Mbid::parse_str("2182a316-c4bd-4605-936a-5e2fac52bdd2").unwrap(),
-                name: "Interscope Records".to_string(),
-                sort_name: "Interscope Records".to_string(),
-                label_code: Some("6406".to_string())
-            },
-            LabelRef {
-                mbid: Mbid::parse_str("061587cb-0262-46bc-9427-cb5e177c36a2").unwrap(),
-                name: "Konlive".to_string(),
-                sort_name: "Konlive".to_string(),
-                label_code: None
-            },
-            LabelRef {
-                mbid: Mbid::parse_str("244dd29f-b999-40e4-8238-cb760ad05ac6").unwrap(),
-                name: "Streamline Records".to_string(),
-                sort_name: "Streamline Records".to_string(),
-                label_code: None
-            },
-            LabelRef {
-                mbid: Mbid::parse_str("6cee07d5-4cc3-4555-a629-480590e0bebd").unwrap(),
-                name: "Universal Music Canada".to_string(),
-                sort_name: "Universal Music Canada".to_string(),
-                label_code: None
-            }
-        ]);
+        assert_eq!(release.labels,
+                   vec![LabelRef {
+                            mbid: Mbid::parse_str("376d9b4d-8cdd-44be-bc0f-ed5dfd2d2340").unwrap(),
+                            name: "Cherrytree Records".to_string(),
+                            sort_name: "Cherrytree Records".to_string(),
+                            label_code: None,
+                        },
+                        LabelRef {
+                            mbid: Mbid::parse_str("2182a316-c4bd-4605-936a-5e2fac52bdd2").unwrap(),
+                            name: "Interscope Records".to_string(),
+                            sort_name: "Interscope Records".to_string(),
+                            label_code: Some("6406".to_string()),
+                        },
+                        LabelRef {
+                            mbid: Mbid::parse_str("061587cb-0262-46bc-9427-cb5e177c36a2").unwrap(),
+                            name: "Konlive".to_string(),
+                            sort_name: "Konlive".to_string(),
+                            label_code: None,
+                        },
+                        LabelRef {
+                            mbid: Mbid::parse_str("244dd29f-b999-40e4-8238-cb760ad05ac6").unwrap(),
+                            name: "Streamline Records".to_string(),
+                            sort_name: "Streamline Records".to_string(),
+                            label_code: None,
+                        },
+                        LabelRef {
+                            mbid: Mbid::parse_str("6cee07d5-4cc3-4555-a629-480590e0bebd").unwrap(),
+                            name: "Universal Music Canada".to_string(),
+                            sort_name: "Universal Music Canada".to_string(),
+                            label_code: None,
+                        }]);
     }
 }
