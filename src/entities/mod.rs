@@ -9,6 +9,9 @@ pub use self::xpath_reader::{ReadError, SxdParserError, SxdXpathError};
 mod date;
 pub use self::date::{Date, ParseDateError};
 
+mod refs;
+pub use self::refs::{ArtistRef, LabelRef};
+
 /// Identifier for entities in the MusicBrainz database.
 /// TODO: Figure out if it makes more sense to keep
 pub type Mbid = uuid::Uuid;
@@ -248,27 +251,6 @@ impl FromXml for Artist {
     }
 }
 
-/// A small variation of `Artist` which is used only to refer to an actual artist entity from other
-/// entities.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ArtistRef {
-    mbid: Mbid,
-    name: String,
-    sort_name: String,
-}
-
-impl FromXml for ArtistRef {
-    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
-        where R: XPathReader<'d>
-    {
-        Ok(ArtistRef {
-               mbid: reader.read_mbid("//mb:artist/@id")?,
-               name: reader.evaluate("//mb:artist/mb:name/text()")?.string(),
-               sort_name: reader.evaluate("//mb:artist/mb:sort-name/text()")?.string(),
-           })
-    }
-}
-
 pub struct Event {}
 
 pub struct Instrument {}
@@ -443,7 +425,7 @@ pub struct Release {
     pub country: String,
 
     /// The label which issued this release.
-    pub labels: Vec<Label>,
+    pub labels: Vec<LabelRef>,
 
     /// Number assigned to the release by the label.
     pub catalogue_number: Option<String>,
@@ -473,10 +455,10 @@ impl FromXml for Release {
     fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
         where R: XPathReader<'d>
     {
+        let context = default_musicbrainz_context();
         let artists_node = reader.evaluate("//mb:release/mb:artist-credit/mb:name-credit")?;
         let artists = match artists_node {
             Nodeset(nodeset) => {
-                let context = default_musicbrainz_context();
                 let res: Result<Vec<ArtistRef>, ReadError> = nodeset.iter().map(|node| {
                     XPathNodeReader::new(node, &context).and_then(|r| ArtistRef::from_xml(&r))
                 }).collect();
@@ -485,7 +467,16 @@ impl FromXml for Release {
             _ => Vec::new(),
         };
 
-        // TODO: label nodes.
+        let labels_node = reader.evaluate("//mb:release/mb:label-info-list/mb:label-info")?;
+        let labels = match labels_node {
+            Nodeset(nodeset) => {
+                let res: Result<Vec<LabelRef>, ReadError> = nodeset.document_order().iter().map(|node| {
+                    XPathNodeReader::new(*node, &context).and_then(|r| LabelRef::from_xml(&r))
+                }).collect();
+                res?
+            }
+            _ => Vec::new(),
+        };
 
         Ok(Release {
                mbid: reader.read_mbid("//mb:release/@id")?,
@@ -493,7 +484,7 @@ impl FromXml for Release {
                artists: artists,
                date: reader.evaluate("//mb:release/mb:date/text()")?.string().parse::<Date>()?,
                country: reader.evaluate("//mb:release/mb:country/text()")?.string(),
-               labels: Vec::new(), // TODO
+               labels: labels,
                catalogue_number: non_empty_string(
                    reader.evaluate("//mb:release/mb:label-info-list/mb:label-info/mb:catalog-number/text()")?.string()),
                barcode: non_empty_string(reader
@@ -503,7 +494,7 @@ impl FromXml for Release {
                    .evaluate("//mb:release/mb:status/text()")?
                    .string()
                    .parse::<ReleaseStatus>()?,
-               packaging: None, // TODO
+               packaging: non_empty_string(reader.evaluate("//mb:release/mb:packaging/text()")?.string()),
                language: reader
                    .evaluate("//mb:release/mb:text-representation/mb:language/text()")?
                    .string(),
@@ -520,7 +511,7 @@ impl FromXml for Release {
 
 impl Resource for Release {
     fn get_url(mbid: &str) -> String {
-        format!("https://musicbrainz.org/ws/2/release/{}?inc=aliases+artists",
+        format!("https://musicbrainz.org/ws/2/release/{}?inc=aliases+artists+labels",
                 mbid)
                 .to_string()
     }
@@ -655,24 +646,75 @@ mod tests {
         let reader = XPathStrReader::new(xml).unwrap();
         let release = Release::from_xml(&reader).unwrap();
 
-        assert_eq!(release.mbid, Mbid::parse_str("ed118c5f-d940-4b52-a37b-b1a205374abe").unwrap());
+        assert_eq!(release.mbid,
+                   Mbid::parse_str("ed118c5f-d940-4b52-a37b-b1a205374abe").unwrap());
         assert_eq!(release.title, "Creep".to_string());
-        assert_eq!(release.artists, vec!(
-                ArtistRef {
-                    mbid: Mbid::parse_str("a74b1b7f-71a5-4011-9441-d0b5e4122711").unwrap(),
-                    name: "Radiohead".to_string(),
-                    sort_name: "Radiohead".to_string()
-                }));
+        assert_eq!(release.artists,
+                   vec![ArtistRef {
+                            mbid: Mbid::parse_str("a74b1b7f-71a5-4011-9441-d0b5e4122711").unwrap(),
+                            name: "Radiohead".to_string(),
+                            sort_name: "Radiohead".to_string(),
+                        }]);
         assert_eq!(release.date, Date::from_str("1992-09-21").unwrap());
         assert_eq!(release.country, "GB".to_string());
+        assert_eq!(release.labels,
+                   vec![LabelRef {
+                            mbid: Mbid::parse_str("df7d1c7f-ef95-425f-8eef-445b3d7bcbd9").unwrap(),
+                            name: "Parlophone".to_string(),
+                            sort_name: "Parlophone".to_string(),
+                            label_code: Some("299".to_string()),
+                        }]);
         // TODO: check labels.
         assert_eq!(release.catalogue_number, Some("CDR 6078".to_string()));
         assert_eq!(release.barcode, Some("724388023429".to_string()));
         assert_eq!(release.status, ReleaseStatus::Official);
-        // TODO: check packaging
         assert_eq!(release.language, "eng".to_string());
         assert_eq!(release.script, "Latn".to_string());
         // TODO: check disambiguation
-        //assert_eq!(release.disambiguation, 
+        //assert_eq!(release.disambiguation,
+    }
+
+    #[test]
+    fn release_read_xml2() {
+        // url: https://musicbrainz.org/ws/2/release/785d7c67-a920-4cee-a871-8cd9896eb8aa?inc=aliases+artists+labels
+        let xml = r#"<?xml version="1.0" encoding="UTF-8"?><metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#"><release id="785d7c67-a920-4cee-a871-8cd9896eb8aa"><title>The Fame</title><status id="4e304316-386d-3409-af2e-78857eec5cfe">Official</status><quality>normal</quality><packaging id="ec27701a-4a22-37f4-bfac-6616e0f9750a">Jewel Case</packaging><text-representation><language>eng</language><script>Latn</script></text-representation><artist-credit><name-credit><artist id="650e7db6-b795-4eb5-a702-5ea2fc46c848"><name>Lady Gaga</name><sort-name>Lady Gaga</sort-name><alias-list count="2"><alias sort-name="Lady Ga Ga">Lady Ga Ga</alias><alias sort-name="Germanotta, Stefani Joanne Angelina" type-id="d4dcd0c0-b341-3612-a332-c0ce797b25cf" type="Legal name">Stefani Joanne Angelina Germanotta</alias></alias-list></artist></name-credit></artist-credit><date>2008-08-19</date><country>CA</country><release-event-list count="1"><release-event><date>2008-08-19</date><area id="71bbafaa-e825-3e15-8ca9-017dcad1748b"><name>Canada</name><sort-name>Canada</sort-name><iso-3166-1-code-list><iso-3166-1-code>CA</iso-3166-1-code></iso-3166-1-code-list></area></release-event></release-event-list><barcode>602517664890</barcode><asin>B001D25N2Y</asin><cover-art-archive><artwork>true</artwork><count>1</count><front>true</front><back>false</back></cover-art-archive><label-info-list count="5"><label-info><catalog-number>0251766489</catalog-number><label id="376d9b4d-8cdd-44be-bc0f-ed5dfd2d2340"><name>Cherrytree Records</name><sort-name>Cherrytree Records</sort-name></label></label-info><label-info><catalog-number>0251766489</catalog-number><label id="2182a316-c4bd-4605-936a-5e2fac52bdd2"><name>Interscope Records</name><sort-name>Interscope Records</sort-name><label-code>6406</label-code><alias-list count="3"><alias sort-name="Flip/Interscope Records">Flip/Interscope Records</alias><alias sort-name="Interscape Records">Interscape Records</alias><alias sort-name="Nothing/Interscope">Nothing/Interscope</alias></alias-list></label></label-info><label-info><catalog-number>0251766489</catalog-number><label id="061587cb-0262-46bc-9427-cb5e177c36a2"><name>Konlive</name><sort-name>Konlive</sort-name><alias-list count="1"><alias sort-name="Kon Live">Kon Live</alias></alias-list></label></label-info><label-info><catalog-number>0251766489</catalog-number><label id="244dd29f-b999-40e4-8238-cb760ad05ac6"><name>Streamline Records</name><sort-name>Streamline Records</sort-name><disambiguation>Interscope imprint</disambiguation></label></label-info><label-info><catalog-number>0251766489</catalog-number><label id="6cee07d5-4cc3-4555-a629-480590e0bebd"><name>Universal Music Canada</name><sort-name>Universal Music Canada</sort-name><disambiguation>1995–</disambiguation><alias-list count="2"><alias sort-name="Universal Music (Canada)">Universal Music (Canada)</alias><alias sort-name="Universal Music Canada in.">Universal Music Canada in.</alias></alias-list></label></label-info></label-info-list></release></metadata>"#;
+        let reader = XPathStrReader::new(xml).unwrap();
+        let release = Release::from_xml(&reader).unwrap();
+
+        // We check for the things we didn't check in the previous test.
+        assert_eq!(release.packaging, Some("Jewel Case".to_string()));
+        assert_eq!(release.catalogue_number, Some("0251766489".to_string()));
+        assert_eq!(release.labels, vec![
+            LabelRef {
+                mbid: Mbid::parse_str("376d9b4d-8cdd-44be-bc0f-ed5dfd2d2340").unwrap(),
+                name: "Cherrytree Records".to_string(),
+                sort_name: "Cherrytree Records".to_string(),
+                label_code: None
+            },
+            LabelRef {
+                mbid: Mbid::parse_str("2182a316-c4bd-4605-936a-5e2fac52bdd2").unwrap(),
+                name: "Interscope Records".to_string(),
+                sort_name: "Interscope Records".to_string(),
+                label_code: Some("6406".to_string())
+            },
+            LabelRef {
+                mbid: Mbid::parse_str("061587cb-0262-46bc-9427-cb5e177c36a2").unwrap(),
+                name: "Konlive".to_string(),
+                sort_name: "Konlive".to_string(),
+                label_code: None
+            },
+            LabelRef {
+                mbid: Mbid::parse_str("244dd29f-b999-40e4-8238-cb760ad05ac6").unwrap(),
+                name: "Streamline Records".to_string(),
+                sort_name: "Streamline Records".to_string(),
+                label_code: None
+            },
+            LabelRef {
+                mbid: Mbid::parse_str("6cee07d5-4cc3-4555-a629-480590e0bebd").unwrap(),
+                name: "Universal Music Canada".to_string(),
+                sort_name: "Universal Music Canada".to_string(),
+                label_code: None
+            }
+        ]);
     }
 }
