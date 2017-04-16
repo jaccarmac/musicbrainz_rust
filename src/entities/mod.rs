@@ -12,7 +12,7 @@ mod date;
 pub use self::date::{Date, ParseDateError};
 
 mod refs;
-pub use self::refs::{ArtistRef, LabelRef};
+pub use self::refs::{AreaRef, ArtistRef, LabelRef};
 
 /// Identifier for entities in the MusicBrainz database.
 /// TODO: Figure out if it makes more sense to keep
@@ -103,21 +103,12 @@ impl FromXml for Area {
     fn from_xml<'d, R>(reader: &'d R) -> Result<Area, ReadError>
         where R: XPathReader<'d>
     {
-        let mbid = reader.read_mbid("//mb:area/@id")?;
-
-        let area_type = reader.evaluate("//mb:area/@type")?.string().parse::<AreaType>()?;
-        let name = reader.evaluate("//mb:area/mb:name/text()")?.string();
-        let sort_name = reader.evaluate("//mb:area/mb:sort-name/text()")?.string();
-        let iso_3166_str = reader
-            .evaluate("//mb:area/mb:iso-3166-1-code-list/mb:iso-3166-1-code/text()")?
-            .string();
-
         Ok(Area {
-               mbid: mbid,
-               name: name,
-               sort_name: sort_name,
-               area_type: area_type,
-               iso_3166: non_empty_string(iso_3166_str),
+               mbid: reader.read_mbid("//mb:area/@id")?,
+               name: reader.evaluate("//mb:area/mb:name/text()")?.string(),
+               sort_name: reader.evaluate("//mb:area/mb:sort-name/text()")?.string(),
+               area_type: reader.evaluate("//mb:area/@type")?.string().parse::<AreaType>()?,
+               iso_3166: non_empty_string(reader.evaluate("//mb:area/mb:iso-3166-1-code-list/mb:iso-3166-1-code/text()")?.string()),
            })
     }
 }
@@ -179,18 +170,9 @@ pub struct Artist {
     /// If the Artist is a single person this indicates their gender.
     pub gender: Option<Gender>,
 
-    /*
     /// The area an artist is primarily identified with. Often, but not always, birth/formation
     /// country of the artist/group.
-    ///
-    /// TODO: Consider if we should usa a different type than Area here, e.g. ArtistArea.
-    /// The problem is that unlike with the standalone Area entity, the type is not provided here
-    /// by the api and we have to make the area_type an Option in Area which is a bit ugly
-    /// considering API users.
-    /// (But we could also just leave it as is and let API clients deal with extracting all the
-    /// optional values.)
-    pub area: Option<Area>,
-    */
+    pub area: Option<AreaRef>,
 
     // TODO: begin and end dates
     pub ipi_code: Option<String>,
@@ -220,19 +202,18 @@ impl FromXml for Artist {
             _ => None,
         };
 
-        /*
-        // Get area information.
-        let area_val = match reader.evaluate("//mb:artist/mb:area")? {
-            Nodeset(nodeset) => {
+        let area = match reader.evaluate("//mb:artist") {
+            Ok(Nodeset(nodeset)) => {
                 if let Some(node) = nodeset.document_order_first() {
+                    let context = default_musicbrainz_context();
                     let reader = XPathNodeReader::new(node, &context)?;
-                    Some(Area::read_xml(&reader)?)
+                    Some(AreaRef::from_xml(&reader)?)
                 } else {
-                    return Err(ReadError::InvalidData("Area element is empty.".to_string()));
+                    None
                 }
             }
-            _ => None,
-        };*/
+            _ => None
+        };
 
         // Get IPI code.
         let ipi = non_empty_string(reader.evaluate("//mb:artist/mb:ipi/text()")?.string());
@@ -247,6 +228,7 @@ impl FromXml for Artist {
                sort_name: sort_name,
                artist_type: artist_type,
                gender: gender,
+               area: area,
                ipi_code: ipi,
                isni_code: isni,
            })
@@ -378,6 +360,7 @@ impl FromXml for Label {
 
 /// Represents a unique audio that has been used to produce at least one released track through
 /// copying or mastering.
+#[derive(Clone, Debug)]
 pub struct Recording {
     /// MBID of the entity in the MusicBrainz database.
     pub mbid: Mbid,
@@ -397,7 +380,8 @@ pub struct Recording {
     /// Disambiguation comment.
     pub disambiguation: Option<String>,
 
-    // TODO: annotation.
+    /// Annotation if present.
+    pub annotation: Option<String>,
 }
 
 impl FromXml for Recording {
@@ -414,8 +398,22 @@ impl FromXml for Recording {
                                                    .string()
                                                    .parse::<u64>()?),
                isrc_code: None, // TODO,
-               disambiguation: None, // TODO
+               disambiguation:
+                   non_empty_string(reader
+                                        .evaluate("//mb:recording/mb:disambiguation/text()")?
+                                        .string()),
+               annotation: non_empty_string(reader
+                                                .evaluate("//mb:recording/mb:annotation/text()")?
+                                                .string()),
            })
+    }
+}
+
+impl Resource for Recording {
+    fn get_url(mbid: &str) -> String {
+        format!("https://musicbrainz.org/ws/2/recording/{}?inc=artists+",
+                mbid)
+                .to_string()
     }
 }
 
@@ -646,14 +644,12 @@ mod tests {
         assert_eq!(result.name, "Lady Gaga".to_string());
         assert_eq!(result.sort_name, "Lady Gaga".to_string());
 
-        /*
         let area = result.area.unwrap();
         assert_eq!(area.mbid,
                    Mbid::parse_str("489ce91b-6658-3307-9877-795b68554c98").unwrap());
         assert_eq!(area.name, "United States".to_string());
         assert_eq!(area.sort_name, "United States".to_string());
         assert_eq!(area.iso_3166, Some("US".to_string()));
-        */
 
         assert_eq!(result.artist_type, ArtistType::Person);
         assert_eq!(result.gender, Some(Gender::Female));

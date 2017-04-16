@@ -3,7 +3,32 @@
 //! These types only contain some basic data but reference a full entity in the MusicBrainz
 //! database which can be retrieved.
 
+// TODO: Better documentation in this file.
+// TODO: When writing the API interfacing code, provide some form of helpers so the full referenced
+//       types corresponding to these ref types can be easily retrieved from the server.
+
 use super::{FromXml, XPathReader, ReadError, Mbid, non_empty_string};
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AreaRef {
+    pub mbid: Mbid,
+    pub name: String,
+    pub sort_name: String,
+    pub iso_3166: Option<String>
+}
+
+impl FromXml for AreaRef {
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
+        where R: XPathReader<'d>
+    {
+        Ok(AreaRef {
+               mbid: reader.read_mbid(".//mb:area/@id")?,
+               name: reader.evaluate(".//mb:area/mb:name/text()")?.string(),
+               sort_name: reader.evaluate(".//mb:area/mb:sort-name/text()")?.string(),
+               iso_3166: non_empty_string(reader.evaluate(".//mb:area/mb:iso-3166-1-code-list/mb:iso-3166-1-code/text()")?.string()),
+           })
+    }
+}
 
 /// A small variation of `Artist` which is used only to refer to an actual artist entity from other
 /// entities.
