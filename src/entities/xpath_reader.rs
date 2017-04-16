@@ -73,9 +73,7 @@ impl<'d> XPathStrReader<'d> {
 impl<'d> XPathReader<'d> for XPathStrReader<'d> {
     fn evaluate(&'d self, xpath_expr: &str) -> Result<Value<'d>, ReadError> {
         let xpath = build_xpath(&self.factory, xpath_expr)?;
-        xpath
-            .evaluate(&self.context, self.package.as_document().root())
-            .map_err(ReadError::from)
+        xpath.evaluate(&self.context, self.package.as_document().root()).map_err(ReadError::from)
     }
 }
 
@@ -94,9 +92,7 @@ impl<'d> XPathNodeReader<'d> {
 impl<'d> XPathReader<'d> for XPathNodeReader<'d> {
     fn evaluate(&'d self, xpath_expr: &str) -> Result<Value<'d>, ReadError> {
         let xpath = build_xpath(&self.factory, xpath_expr)?;
-        xpath
-            .evaluate(self.context, self.node)
-            .map_err(ReadError::from)
+        xpath.evaluate(self.context, self.node).map_err(ReadError::from)
     }
 }
 
@@ -133,5 +129,11 @@ impl From<::sxd_xpath::ExecutionError> for ReadError {
 impl From<::uuid::ParseError> for ReadError {
     fn from(err: ::uuid::ParseError) -> ReadError {
         ReadError::InvalidData(format!("Failed parsing string as uuid: {}", err).to_string())
+    }
+}
+
+impl From<super::date::ParseDateError> for ReadError {
+    fn from(err: super::date::ParseDateError) -> ReadError {
+        ReadError::InvalidData(format!("Failed parsing `Date`: {:?}", err).to_string())
     }
 }

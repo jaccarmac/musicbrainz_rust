@@ -95,14 +95,9 @@ impl FromXml for Area {
     {
         let mbid = reader.read_mbid("//mb:area/@id")?;
 
-        let area_type = reader
-            .evaluate("//mb:area/@type")?
-            .string()
-            .parse::<AreaType>()?;
+        let area_type = reader.evaluate("//mb:area/@type")?.string().parse::<AreaType>()?;
         let name = reader.evaluate("//mb:area/mb:name/text()")?.string();
-        let sort_name = reader
-            .evaluate("//mb:area/mb:sort-name/text()")?
-            .string();
+        let sort_name = reader.evaluate("//mb:area/mb:sort-name/text()")?.string();
         let iso_3166_str = reader
             .evaluate("//mb:area/mb:iso-3166-1-code-list/mb:iso-3166-1-code/text()")?
             .string();
@@ -199,13 +194,8 @@ impl FromXml for Artist {
     {
         let mbid = reader.read_mbid("//mb:artist/@id")?;
         let name = reader.evaluate("//mb:artist/mb:name/text()")?.string();
-        let sort_name = reader
-            .evaluate("//mb:artist/mb:sort-name/text()")?
-            .string();
-        let artist_type = reader
-            .evaluate("//mb:artist/@type")?
-            .string()
-            .parse::<ArtistType>()?;
+        let sort_name = reader.evaluate("//mb:artist/mb:sort-name/text()")?.string();
+        let artist_type = reader.evaluate("//mb:artist/@type")?.string().parse::<ArtistType>()?;
 
         // Get gender.
         let gender = match reader.evaluate("//mb:artist/mb:gender/text()") {
@@ -238,9 +228,8 @@ impl FromXml for Artist {
         let ipi = non_empty_string(reader.evaluate("//mb:artist/mb:ipi/text()")?.string());
 
         // Get ISNI code.
-        let isni = non_empty_string(reader
-                                        .evaluate("//mb:artist/mb:isni-list/mb:isni/text()")?
-                                        .string());
+        let isni =
+            non_empty_string(reader.evaluate("//mb:artist/mb:isni-list/mb:isni/text()")?.string());
 
         Ok(Artist {
                mbid: mbid,
@@ -298,6 +287,7 @@ impl FromStr for LabelType {
     }
 }
 
+/// A label entity in the MusicBrainz database.
 /// There is quite some controversy in the music industry what a 'label' constitutes.
 ///
 /// For a complete disambiguation see the `LabelType` enum. The labels in MusicBrainz are mostly
@@ -335,7 +325,10 @@ pub struct Label {
     /// ISNI code of the label.
     pub isni_code: Option<String>,
 
+    /// TODO: docs
     pub date_begin: Option<Date>,
+
+    /// TODO: docs
     pub date_end: Option<Date>,
 }
 
@@ -343,51 +336,32 @@ impl FromXml for Label {
     fn from_xml<'d, R>(reader: &'d R) -> Result<Label, ReadError>
         where R: XPathReader<'d>
     {
-        let mbid = reader.read_mbid("//mb:label/@id")?;
-        let name = reader.evaluate("//mb:label/mb:name/text()")?.string();
-        let sort_name = reader
-            .evaluate("//mb:label/mb:sort-name/text()")?
-            .string();
-        let disambiguation = non_empty_string(reader
-                                                  .evaluate("//mb:label/mb:disambiguation/text()")?
-                                                  .string());
-        let aliases = Vec::new(); // TODO
-        let label_code = non_empty_string(reader
-                                              .evaluate("//mb:label/mb:label-code/text()")?
-                                              .string());
-        let label_type = reader
-            .evaluate("//mb:label/@type")?
-            .string()
-            .parse::<LabelType>()?;
-        let country = non_empty_string(reader
-                                           .evaluate("//mb:label/mb:country/text()")?
-                                           .string());
-        let ipi_code = None; // TODO
-        let isni_code = None; // TODO
-        let date_begin = Date::from_str(&reader
-                                             .evaluate("//mb:label/mb:life-span/mb:begin/text()")?
-                                             .string()
-                                             [..])
-                .ok();
-        let date_end = Date::from_str(&reader
-                                           .evaluate("//mb:label/mb:life-span/mb:end/text()")?
-                                           .string()
-                                           [..])
-                .ok();
-
         Ok(Label {
-               mbid: mbid,
-               name: name,
-               sort_name: sort_name,
-               disambiguation: disambiguation,
-               aliases: aliases,
-               label_code: label_code,
-               label_type: label_type,
-               country: country,
-               ipi_code: ipi_code,
-               isni_code: isni_code,
-               date_begin: date_begin,
-               date_end: date_end,
+               mbid: reader.read_mbid("//mb:label/@id")?,
+               name: reader.evaluate("//mb:label/mb:name/text()")?.string(),
+               sort_name: reader.evaluate("//mb:label/mb:sort-name/text()")?.string(),
+               disambiguation:
+                   non_empty_string(reader
+                                        .evaluate("//mb:label/mb:disambiguation/text()")?
+                                        .string()),
+               aliases: Vec::new(), // TODO
+               label_code: non_empty_string(reader
+                                                .evaluate("//mb:label/mb:label-code/text()")?
+                                                .string()),
+               label_type: reader.evaluate("//mb:label/@type")?.string().parse::<LabelType>()?,
+               country: non_empty_string(reader.evaluate("//mb:label/mb:country/text()")?.string()),
+               ipi_code: None, // TODO
+               isni_code: None, // TODO
+               date_begin: reader
+                   .evaluate("//mb:label/mb:life-span/mb:begin/text()")?
+                   .string()
+                   .parse::<Date>()
+                   .ok(),
+               date_end: reader
+                   .evaluate("//mb:label/mb:life-span/mb:end/text()")?
+                   .string()
+                   .parse::<Date>()
+                   .ok(),
            })
     }
 }
@@ -410,6 +384,21 @@ pub enum ReleaseStatus {
     PseudoRelease,
 }
 
+impl FromStr for ReleaseStatus {
+    type Err = ReadError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Official" => Ok(ReleaseStatus::Official),
+            "Promotional" => Ok(ReleaseStatus::Promotional),
+            "Bootleg" => Ok(ReleaseStatus::Bootleg),
+            "PseudoRelease" => Ok(ReleaseStatus::PseudoRelease),
+            s => {
+                Err(ReadError::InvalidData(format!("Unknown `ReleaseStatus`: '{}'", s).to_string()))
+            }
+        }
+    }
+}
+
 pub struct Release {
     /// MBID of the entity in the MusicBrainz database.
     pub mbid: Mbid,
@@ -417,24 +406,73 @@ pub struct Release {
     /// The title of the release.
     pub title: String,
 
-    // TODO: `label`
+    // TODO: artist, artist credits. Are these stored as relatinships?
+    /// The artists that the release is primarily credited to.
+    //pub artist: Vec<Artist>,
+    /// The date the release was issued.
+    pub date: Date,
 
-    // TODO: The date the release was issued.
-//    pub date: Date
+    /// The country the release was issued in.
     pub country: String,
 
+    /// The label which issued the release, there can be more than one label.
+    pub label: Vec<Label>,
+
+    /// Number assigned to the release by the label.
+    pub catalogue_number: Option<String>,
+
+    /// Barcode of the release, if it has one.
+    pub barcode: Option<String>,
+
+    /// Official status of the release.
     pub status: ReleaseStatus,
 
-    // TODO: packaging
+    /// Packaging of the release.
+    /// TODO: Consider an enum for the possible packaging types.
+    pub packaging: Option<String>,
+
     /// Language of the release. ISO 639-3 conformant string.
     pub language: String,
 
     /// Script used to write the track list. ISO 15924 conformant string.
     pub script: String,
 
-    // TODO: disamuiguation comments
-    // TODO: annotations
-    pub barcode: Option<String>,
+    /// A disambiguation comment if present, which allows to differentiate this release easily from
+    /// other releases with the same or very similar name.
+    pub disambiguation: Option<String>, // TODO: annotations
+}
+
+impl FromXml for Release {
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
+        where R: XPathReader<'d>
+    {
+        Ok(Release {
+               mbid: reader.read_mbid("//mb:release/@id")?,
+               title: reader.evaluate("//mb:release/mb:title/text()")?.string(),
+               date: reader.evaluate("//mb:release/mb:date/text()")?.string().parse::<Date>()?,
+               country: reader.evaluate("//mb:release/mb:country/text()")?.string(),
+               label: Vec::new(), // TODO
+               catalogue_number: None, // TODO
+               barcode: non_empty_string(reader
+                                             .evaluate("//mb:release/mb:barcode/text()")?
+                                             .string()),
+               status: reader
+                   .evaluate("//mb:release/mb:status/text()")?
+                   .string()
+                   .parse::<ReleaseStatus>()?,
+               packaging: None, // TODO
+               language: reader
+                   .evaluate("//mb:release/mb:text-representation/mb:language/text()")?
+                   .string(),
+               script: reader
+                   .evaluate("//mb:release/mb:text-representation/mb:script/text()")?
+                   .string(),
+               disambiguation:
+                   non_empty_string(reader
+                                        .evaluate("//mb:release/mb:disambiguation/text()")?
+                                        .string()),
+           })
+    }
 }
 
 pub struct ReleaseGroup {}

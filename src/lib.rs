@@ -8,9 +8,7 @@ extern crate sxd_document;
 extern crate sxd_xpath;
 
 pub mod errors {
-    error_chain! {
-
-    }
+    error_chain!{}
 }
 use errors::*;
 
@@ -19,6 +17,5 @@ pub mod entities;
 #[cfg(test)]
 mod tests {
     #[test]
-    fn it_works() {
-    }
+    fn it_works() {}
 }
