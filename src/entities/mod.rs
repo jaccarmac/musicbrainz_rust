@@ -24,6 +24,11 @@ pub trait FromXml
     fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError> where R: XPathReader<'d>;
 }
 
+pub trait Resource {
+    /// Returns the url where one can get a ressource in the valid format for parsing from.
+    fn get_url(mbid: &str) -> String;
+}
+
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum AreaType {
     /// Areas included (or previously included) in ISO 3166-1.
@@ -243,6 +248,27 @@ impl FromXml for Artist {
     }
 }
 
+/// A small variation of `Artist` which is used only to refer to an actual artist entity from other
+/// entities.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ArtistRef {
+    mbid: Mbid,
+    name: String,
+    sort_name: String,
+}
+
+impl FromXml for ArtistRef {
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
+        where R: XPathReader<'d>
+    {
+        Ok(ArtistRef {
+               mbid: reader.read_mbid("//mb:artist/@id")?,
+               name: reader.evaluate("//mb:artist/mb:name/text()")?.string(),
+               sort_name: reader.evaluate("//mb:artist/mb:sort-name/text()")?.string(),
+           })
+    }
+}
+
 pub struct Event {}
 
 pub struct Instrument {}
@@ -368,6 +394,7 @@ impl FromXml for Label {
 
 pub struct Recording {}
 
+#[derive(Debug, Eq, PartialEq)]
 pub enum ReleaseStatus {
     /// Release officially sanctioned by the artist and/or their record company.
     Official,
@@ -406,17 +433,17 @@ pub struct Release {
     /// The title of the release.
     pub title: String,
 
-    // TODO: artist, artist credits. Are these stored as relatinships?
     /// The artists that the release is primarily credited to.
-    //pub artist: Vec<Artist>,
+    pub artists: Vec<ArtistRef>,
+
     /// The date the release was issued.
     pub date: Date,
 
     /// The country the release was issued in.
     pub country: String,
 
-    /// The label which issued the release, there can be more than one label.
-    pub label: Vec<Label>,
+    /// The label which issued this release.
+    pub labels: Vec<Label>,
 
     /// Number assigned to the release by the label.
     pub catalogue_number: Option<String>,
@@ -446,13 +473,29 @@ impl FromXml for Release {
     fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
         where R: XPathReader<'d>
     {
+        let artists_node = reader.evaluate("//mb:release/mb:artist-credit/mb:name-credit")?;
+        let artists = match artists_node {
+            Nodeset(nodeset) => {
+                let context = default_musicbrainz_context();
+                let res: Result<Vec<ArtistRef>, ReadError> = nodeset.iter().map(|node| {
+                    XPathNodeReader::new(node, &context).and_then(|r| ArtistRef::from_xml(&r))
+                }).collect();
+                res?
+            }
+            _ => Vec::new(),
+        };
+
+        // TODO: label nodes.
+
         Ok(Release {
                mbid: reader.read_mbid("//mb:release/@id")?,
                title: reader.evaluate("//mb:release/mb:title/text()")?.string(),
+               artists: artists,
                date: reader.evaluate("//mb:release/mb:date/text()")?.string().parse::<Date>()?,
                country: reader.evaluate("//mb:release/mb:country/text()")?.string(),
-               label: Vec::new(), // TODO
-               catalogue_number: None, // TODO
+               labels: Vec::new(), // TODO
+               catalogue_number: non_empty_string(
+                   reader.evaluate("//mb:release/mb:label-info-list/mb:label-info/mb:catalog-number/text()")?.string()),
                barcode: non_empty_string(reader
                                              .evaluate("//mb:release/mb:barcode/text()")?
                                              .string()),
@@ -472,6 +515,14 @@ impl FromXml for Release {
                                         .evaluate("//mb:release/mb:disambiguation/text()")?
                                         .string()),
            })
+    }
+}
+
+impl Resource for Release {
+    fn get_url(mbid: &str) -> String {
+        format!("https://musicbrainz.org/ws/2/release/{}?inc=aliases+artists",
+                mbid)
+                .to_string()
     }
 }
 
@@ -596,5 +647,32 @@ mod tests {
         assert_eq!(label.isni_code, None);
         assert_eq!(label.date_begin, Some(Date::Year { year: 1972 }));
         assert_eq!(label.date_end, None);
+    }
+
+    #[test]
+    fn release_read_xml1() {
+        let xml = r#"<?xml version="1.0" encoding="UTF-8"?><metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#"><release id="ed118c5f-d940-4b52-a37b-b1a205374abe"><title>Creep</title><status id="4e304316-386d-3409-af2e-78857eec5cfe">Official</status><quality>normal</quality><text-representation><language>eng</language><script>Latn</script></text-representation><artist-credit><name-credit><artist id="a74b1b7f-71a5-4011-9441-d0b5e4122711"><name>Radiohead</name><sort-name>Radiohead</sort-name></artist></name-credit></artist-credit><date>1992-09-21</date><country>GB</country><release-event-list count="1"><release-event><date>1992-09-21</date><area id="8a754a16-0027-3a29-b6d7-2b40ea0481ed"><name>United Kingdom</name><sort-name>United Kingdom</sort-name><iso-3166-1-code-list><iso-3166-1-code>GB</iso-3166-1-code></iso-3166-1-code-list></area></release-event></release-event-list><barcode>724388023429</barcode><asin>B000EHLKNU</asin><cover-art-archive><artwork>true</artwork><count>3</count><front>true</front><back>true</back></cover-art-archive><label-info-list count="1"><label-info><catalog-number>CDR 6078</catalog-number><label id="df7d1c7f-ef95-425f-8eef-445b3d7bcbd9"><name>Parlophone</name><sort-name>Parlophone</sort-name><label-code>299</label-code></label></label-info></label-info-list></release></metadata>"#;
+        let reader = XPathStrReader::new(xml).unwrap();
+        let release = Release::from_xml(&reader).unwrap();
+
+        assert_eq!(release.mbid, Mbid::parse_str("ed118c5f-d940-4b52-a37b-b1a205374abe").unwrap());
+        assert_eq!(release.title, "Creep".to_string());
+        assert_eq!(release.artists, vec!(
+                ArtistRef {
+                    mbid: Mbid::parse_str("a74b1b7f-71a5-4011-9441-d0b5e4122711").unwrap(),
+                    name: "Radiohead".to_string(),
+                    sort_name: "Radiohead".to_string()
+                }));
+        assert_eq!(release.date, Date::from_str("1992-09-21").unwrap());
+        assert_eq!(release.country, "GB".to_string());
+        // TODO: check labels.
+        assert_eq!(release.catalogue_number, Some("CDR 6078".to_string()));
+        assert_eq!(release.barcode, Some("724388023429".to_string()));
+        assert_eq!(release.status, ReleaseStatus::Official);
+        // TODO: check packaging
+        assert_eq!(release.language, "eng".to_string());
+        assert_eq!(release.script, "Latn".to_string());
+        // TODO: check disambiguation
+        //assert_eq!(release.disambiguation, 
     }
 }
