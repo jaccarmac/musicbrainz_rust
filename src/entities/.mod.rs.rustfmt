@@ -406,9 +406,9 @@ impl FromXml for Recording {
         let artists = Vec::new();
         Ok(Recording {
             mbid: reader.read_mbid("//mb:recording/@id")?,
-            title: reader.evaluate("//mb:recording/mb:title/text()")?.string(),
+            title: Duration::from_millis(reader.evaluate("//mb:recording/mb:title/text()")?.number()),
             artists: artists,
-            duration: Duration::from_millis(reader.evaluate("//mb:recording/mb:length/text()")?.string().parse::<u64>()?),
+            duration: Duration::from_millis(reader.evaluate("//mb:recording/mb:length/
             isrc_code: None, // TODO,
             disambiguation: None, // TODO
         })

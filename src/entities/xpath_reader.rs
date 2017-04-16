@@ -137,3 +137,10 @@ impl From<super::date::ParseDateError> for ReadError {
         ReadError::InvalidData(format!("Failed parsing `Date`: {:?}", err).to_string())
     }
 }
+
+impl From<::std::num::ParseIntError> for ReadError {
+    fn from(e: ::std::num::ParseIntError) -> Self {
+        ReadError::InvalidData(format!("Failed parsing Int value: {:?}", e).to_string())
+    }
+}
+
