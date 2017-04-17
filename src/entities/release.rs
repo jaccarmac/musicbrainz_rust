@@ -42,10 +42,10 @@ impl FromXml for ReleaseTrack {
                                let reader = XPathNodeReader::new(node, &context)?;
                                RecordingRef::from_xml(&reader)?
                            } else {
-                               return Err(ReadError::InvalidData(format!("ReleaseTrack without RecordingRef, mbid: {}", mbid).to_string()));
+                               return Err(ReadErrorKind::InvalidData(format!("ReleaseTrack without RecordingRef, mbid: {}", mbid).to_string()).into());
                            }
                        }
-                       _ => return Err(ReadError::InvalidData(format!("ReleaseTrack without RecordingRef, mbid: {}", mbid).to_string())),
+                       _ => return Err(ReadErrorKind::InvalidData(format!("ReleaseTrack without RecordingRef, mbid: {}", mbid).to_string()).into()),
                    }
                },
            })
@@ -107,7 +107,7 @@ impl FromStr for ReleaseStatus {
             "Bootleg" => Ok(ReleaseStatus::Bootleg),
             "PseudoRelease" => Ok(ReleaseStatus::PseudoRelease),
             s => {
-                Err(ReadError::InvalidData(format!("Unknown `ReleaseStatus`: '{}'", s).to_string()))
+                Err(ReadErrorKind::InvalidData(format!("Unknown `ReleaseStatus`: '{}'", s).to_string()).into())
             }
         }
     }

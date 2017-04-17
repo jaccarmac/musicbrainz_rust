@@ -1,7 +1,9 @@
 // TODO: this should probably be moved to a different file/directory
 
+use std;
 use std::str::FromStr;
 use std::num::ParseIntError;
+use std::error::Error;
 
 /// The `Date` type used by the `musicbrainz` crate.
 /// It allows the representation of partial dates.
@@ -62,6 +64,26 @@ pub enum ParseDateError {
 
     /// Failed parsing a component into the appropriate number type.
     ComponentInvalid(ParseIntError),
+}
+
+impl Error for ParseDateError {
+    fn description(&self) -> &str {
+        use self::ParseDateError::*;
+        match *self {
+            WrongNumberOfComponents(_) => "wrong number of components",
+            ComponentInvalid(_) => "invalid component",
+        }
+    }
+}
+
+impl std::fmt::Display for ParseDateError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        use self::ParseDateError::*;
+        match *self {
+            WrongNumberOfComponents(n) => write!(f, "ParseDateError: Wrong number of components: {}", n),
+            ComponentInvalid(ref err) => write!(f, "ParseDateError: Component invalid: {:?}", err),
+        }
+    }
 }
 
 impl From<ParseIntError> for ParseDateError {

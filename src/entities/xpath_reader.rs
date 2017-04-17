@@ -7,7 +7,7 @@ use sxd_document;
 use sxd_document::Package;
 use sxd_document::parser::parse as sxd_parse;
 
-use super::Mbid;
+use super::{Mbid, ReadError, ReadErrorKind};
 
 pub fn default_musicbrainz_context<'d>() -> Context<'d> {
     let mut context = Context::<'d>::default();
@@ -41,10 +41,12 @@ pub struct XPathNodeReader<'d> {
 }
 
 // TODO
+/*
 pub type SxdParserError = sxd_document::parser::Error;
 type SxdParserErrors = (usize, Vec<sxd_document::parser::Error>);
 pub type SxdXpathError = sxd_xpath::Error;
-
+*/
+/*
 #[derive(Debug)]
 pub enum ReadError {
     XmlParserError(SxdParserError),
@@ -54,11 +56,12 @@ pub enum ReadError {
     /// that should be reported and fixed.
     InternalError(String),
 }
+*/
 
 fn build_xpath(factory: &Factory, xpath_expr: &str) -> Result<XPath, ReadError> {
     factory
         .build(xpath_expr)?
-        .ok_or_else(|| ReadError::InternalError("XPath instance was None!".to_string()))
+        .ok_or_else(|| ReadErrorKind::InternalError("XPath instance was `None`!".to_string()).into())
 }
 
 impl<'d> XPathStrReader<'d> {
@@ -98,50 +101,3 @@ impl<'d> XPathReader<'d> for XPathNodeReader<'d> {
     }
 }
 
-impl From<SxdParserError> for ReadError {
-    fn from(e: SxdParserError) -> ReadError {
-        ReadError::XmlParserError(e)
-    }
-}
-
-impl From<SxdParserErrors> for ReadError {
-    fn from(e: SxdParserErrors) -> ReadError {
-        ReadError::XmlParserError(e.1[0])
-    }
-}
-
-impl From<SxdXpathError> for ReadError {
-    fn from(e: SxdXpathError) -> ReadError {
-        ReadError::XmlXpathError(e)
-    }
-}
-
-impl From<::sxd_xpath::ParserError> for ReadError {
-    fn from(e: ::sxd_xpath::ParserError) -> ReadError {
-        ReadError::XmlXpathError(::sxd_xpath::Error::Parsing(e))
-    }
-}
-
-impl From<::sxd_xpath::ExecutionError> for ReadError {
-    fn from(e: ::sxd_xpath::ExecutionError) -> ReadError {
-        ReadError::XmlXpathError(::sxd_xpath::Error::Executing(e))
-    }
-}
-
-impl From<::uuid::ParseError> for ReadError {
-    fn from(err: ::uuid::ParseError) -> ReadError {
-        ReadError::InvalidData(format!("Failed parsing string as uuid: {}", err).to_string())
-    }
-}
-
-impl From<super::date::ParseDateError> for ReadError {
-    fn from(err: super::date::ParseDateError) -> ReadError {
-        ReadError::InvalidData(format!("Failed parsing `Date`: {:?}", err).to_string())
-    }
-}
-
-impl From<::std::num::ParseIntError> for ReadError {
-    fn from(e: ::std::num::ParseIntError) -> Self {
-        ReadError::InvalidData(format!("Failed parsing Int value: {:?}", e).to_string())
-    }
-}

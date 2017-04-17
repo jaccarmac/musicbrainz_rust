@@ -38,7 +38,7 @@ impl FromStr for AreaType {
             "City" => Ok(AreaType::City),
             "District" => Ok(AreaType::District),
             "Island" => Ok(AreaType::Island),
-            s => Err(ReadError::InvalidData(format!("Invalid `AreaType`: '{}'", s).to_string())),
+            s => Err(ReadErrorKind::InvalidData(format!("Invalid `AreaType`: '{}'", s).to_string()).into()),
         }
     }
 }

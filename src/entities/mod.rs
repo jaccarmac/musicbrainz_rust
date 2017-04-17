@@ -6,7 +6,7 @@ pub use std::time::Duration;
 
 mod xpath_reader;
 use self::xpath_reader::*;
-pub use self::xpath_reader::{ReadError, SxdParserError, SxdXpathError};
+use super::{ReadError, ReadErrorKind};
 
 mod date;
 pub use self::date::{Date, ParseDateError};
@@ -68,8 +68,8 @@ impl FromStr for ArtistType {
             "Character" => Ok(ArtistType::Character),
             "Other" => Ok(ArtistType::Other),
             t => {
-                return Err(ReadError::InvalidData(format!("Unknown artist type: {}", t)
-                                                      .to_string()))
+                return Err(ReadErrorKind::InvalidData(format!("Unknown artist type: {}", t)
+                                                      .to_string()).into())
             }
         }
     }
@@ -232,7 +232,7 @@ impl FromStr for LabelType {
             "Distribution" => Ok(LabelType::Distribution),
             "Holding" => Ok(LabelType::Holding),
             "RightsSociety" => Ok(LabelType::RightsSociety),
-            s => Err(ReadError::InvalidData(format!("Invalid `LabelType`: '{}'", s).to_string())),
+            s => Err(ReadErrorKind::InvalidData(format!("Invalid `LabelType`: '{}'", s).to_string()).into()),
         }
     }
 }

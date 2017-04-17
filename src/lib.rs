@@ -8,6 +8,8 @@ extern crate sxd_document;
 extern crate sxd_xpath;
 
 pub mod errors {
+    pub type XmlParserErrors = (usize, ::std::vec::Vec<::sxd_document::parser::Error>);
+
     error_chain!{
         types {
             ReadError, ReadErrorKind, ChainReadErr, ReadResult;
@@ -17,7 +19,12 @@ pub mod errors {
         // chain.
         foreign_links {
             XmlParserError(::sxd_document::parser::Error);
-            XmlXpathError(::sxd_xpath::Error);
+            XpathError(::sxd_xpath::Error);
+            XpathExecutionError(::sxd_xpath::ExecutionError);
+            XpathParserError(::sxd_xpath::ParserError);
+            UuidParseError(::uuid::ParseError);
+            ParseIntError(::std::num::ParseIntError);
+            ParseDateError(super::entities::ParseDateError);
         }
 
         // Custom error kinds.
@@ -34,8 +41,14 @@ pub mod errors {
             }
         }
     }
+
+    impl From<(usize, ::std::vec::Vec<::sxd_document::parser::Error>)> for ReadError {
+        fn from(err: (usize, ::std::vec::Vec<::sxd_document::parser::Error>)) -> ReadError {
+            ReadErrorKind::XmlParserError(err.1[0]).into()
+        }
+    }
 }
-//use errors::*;
+pub use errors::*;
 
 pub mod entities;
 
