@@ -7,7 +7,7 @@
 // TODO: When writing the API interfacing code, provide some form of helpers so the full referenced
 //       types corresponding to these ref types can be easily retrieved from the server.
 
-use super::{FromXml, XPathReader, ReadError, Mbid, non_empty_string};
+use super::*;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AreaRef {
@@ -74,3 +74,23 @@ impl FromXml for LabelRef {
            })
     }
 }
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecordingRef {
+    pub mbid: Mbid,
+    pub title: String,
+    pub length: Duration
+}
+
+impl FromXml for RecordingRef {
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
+        where R: XPathReader<'d>
+    {
+        Ok(RecordingRef {
+            mbid: reader.read_mbid(".//mb:recording/@id")?,
+            title: reader.evaluate(".//mb:recording/mb:title/text()")?.string(),
+            length: Duration::from_millis(reader.evaluate(".//mb:recording/mb:duration/text()")?.string().parse::<u64>()?)
+        })
+    }
+}
+

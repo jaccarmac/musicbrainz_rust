@@ -37,11 +37,12 @@ impl FromXml for Recording {
                    Nodeset(nodeset) => {
                        let context = default_musicbrainz_context();
                        let res: Result<Vec<ArtistRef>, ReadError> = nodeset
-                .iter()
-                .map(|node| {
-                         XPathNodeReader::new(node, &context).and_then(|r| ArtistRef::from_xml(&r))
-                     })
-                .collect();
+                           .iter()
+                           .map(|node| {
+                                    XPathNodeReader::new(node, &context)
+                                        .and_then(|r| ArtistRef::from_xml(&r))
+                                })
+                           .collect();
                        res?
                    }
                    _ => Vec::new(),
