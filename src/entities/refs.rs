@@ -87,9 +87,9 @@ impl FromXml for RecordingRef {
         where R: XPathReader<'d>
     {
         Ok(RecordingRef {
-            mbid: reader.read_mbid(".//mb:recording/@id")?,
-            title: reader.evaluate(".//mb:recording/mb:title/text()")?.string(),
-            length: Duration::from_millis(reader.evaluate(".//mb:recording/mb:duration/text()")?.string().parse::<u64>()?)
+            mbid: reader.read_mbid(".//@id")?,
+            title: reader.evaluate(".//mb:title/text()")?.string(),
+            length: Duration::from_millis(reader.evaluate(".//mb:length/text()")?.string().parse::<u64>()?)
         })
     }
 }

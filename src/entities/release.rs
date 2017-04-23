@@ -24,18 +24,17 @@ impl FromXml for ReleaseTrack {
     fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
         where R: XPathReader<'d>
     {
-        let mbid = reader.read_mbid("mb:track/@id")?;
+        let mbid = reader.read_mbid(".//@id")?;
         Ok(ReleaseTrack {
                mbid: mbid,
-               position: reader.evaluate("mb:track/mb:position/text()")?.string().parse()?,
-               number: reader.evaluate("mb:track/mb:number/text()")?.string().parse()?,
-               title: reader.evaluate("mb:track/mb:title/text()")?.string(),
-               length: Duration::from_millis(reader
-                                                 .evaluate("mb:track/mb:length/text()")?
+               position: reader.evaluate(".//mb:position/text()")?.string().parse()?,
+               number: reader.evaluate(".//mb:number/text()")?.string().parse()?,
+               title: reader.evaluate(".//mb:title/text()")?.string(),
+               length: Duration::from_millis(reader.evaluate(".//mb:length/text()")?
                                                  .string()
                                                  .parse()?),
                recording: {
-                   match reader.evaluate("mb:track/mb:recording")? {
+                   match reader.evaluate(".//mb:recording")? {
                        Nodeset(nodeset) => {
                            if let Some(node) = nodeset.document_order_first() {
                                let context = default_musicbrainz_context();
@@ -52,9 +51,14 @@ impl FromXml for ReleaseTrack {
     }
 }
 
+/// A medium is a collection of multiple `ReleaseTrack`. For physical releases one medium might
+/// equal one CD, so an album released as a release with two CDs would have two associated
+/// `ReleaseMedium` instances.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ReleaseMedium {
+    /// The medium's position number providing a total order between all mediums of one `Release`.
     position: u16,
+    /// The tracks stored on this medium.
     tracks: Vec<ReleaseTrack>,
 }
 
@@ -63,7 +67,7 @@ impl FromXml for ReleaseMedium {
         where R: XPathReader<'d>
     {
         // TODO: test offset for multi cd releases.
-        let tracks_node = reader.evaluate("mb:track-list/mb:track")?;
+        let tracks_node = reader.evaluate(".//mb:track-list/mb:track")?;
         let tracks = match tracks_node {
             Nodeset(nodeset) => {
                 let context = default_musicbrainz_context();
@@ -75,7 +79,7 @@ impl FromXml for ReleaseMedium {
             _ => Vec::new(),
         };
         Ok(ReleaseMedium {
-               position: reader.evaluate("mb:position/text()")?.string().parse()?,
+               position: reader.evaluate(".//mb:position/text()")?.string().parse()?,
                tracks: tracks,
            })
     }
@@ -107,7 +111,9 @@ impl FromStr for ReleaseStatus {
             "Bootleg" => Ok(ReleaseStatus::Bootleg),
             "PseudoRelease" => Ok(ReleaseStatus::PseudoRelease),
             s => {
-                Err(ReadErrorKind::InvalidData(format!("Unknown `ReleaseStatus`: '{}'", s).to_string()).into())
+                Err(ReadErrorKind::InvalidData(format!("Unknown `ReleaseStatus`: '{}'", s)
+                                                   .to_string())
+                            .into())
             }
         }
     }
@@ -330,45 +336,45 @@ mod tests {
         assert_eq!(mediums.len(), 1);
         let medium = mediums.get(0).unwrap();
         assert_eq!(medium.position, 1);
-        assert_eq!(medium.tracks,
-                   vec![ReleaseTrack {
-                            mbid: Mbid::parse_str("ac898be7-2965-4d17-9ac8-48d45852d73c").unwrap(),
-                            position: 1,
-                            number: 1,
-                            title: "pulle tenebrarum".to_string(),
-                            length: Duration::from_millis(232000),
-                            recording: RecordingRef {
-                                mbid: Mbid::parse_str("fd6f4cd8-9cff-43da-8cd7-3351357b6f5a")
-                                    .unwrap(),
-                                title: "Puella Tenebrarum".to_string(),
-                                length: Duration::from_millis(232000),
-                            },
-                        },
-                        ReleaseTrack {
-                            mbid: Mbid::parse_str("21648b0b-deaf-4b93-a257-5fc18363b25d").unwrap(),
-                            position: 2,
-                            number: 2,
-                            title: "LAMINA MALEDICTUM".to_string(),
-                            length: Duration::from_millis(258000),
-                            recording: RecordingRef {
-                                mbid: Mbid::parse_str("0eeb0621-8013-4c0e-8e49-ddfd78d56051")
-                                    .unwrap(),
-                                title: "Lamina Maledictum".to_string(),
-                                length: Duration::from_millis(258000),
-                            },
-                        },
-                        ReleaseTrack {
-                            mbid: Mbid::parse_str("e57b3990-eb36-476e-beac-583e0bbe6f87").unwrap(),
-                            position: 3,
-                            number: 3,
-                            title: "SARNATH".to_string(),
-                            length: Duration::from_millis(228000),
-                            recording: RecordingRef {
-                                mbid: Mbid::parse_str("53f87e98-351e-453e-b949-bdacf4cbeccd")
-                                    .unwrap(),
-                                title: "Sarnath".to_string(),
-                                length: Duration::from_millis(228000),
-                            },
-                        }]);
+        assert_eq!(medium.tracks.len(), 3);
+        assert_eq!(medium.tracks[0],
+                   ReleaseTrack {
+                       mbid: Mbid::parse_str("ac898be7-2965-4d17-9ac8-48d45852d73c").unwrap(),
+                       position: 1,
+                       number: 1,
+                       title: "puella tenebrarum".to_string(),
+                       length: Duration::from_millis(232000),
+                       recording: RecordingRef {
+                           mbid: Mbid::parse_str("fd6f4cd8-9cff-43da-8cd7-3351357b6f5a").unwrap(),
+                           title: "Puella Tenebrarum".to_string(),
+                           length: Duration::from_millis(232000),
+                       },
+                   });
+        assert_eq!(medium.tracks[1],
+                   ReleaseTrack {
+                       mbid: Mbid::parse_str("21648b0b-deaf-4b93-a257-5fc18363b25d").unwrap(),
+                       position: 2,
+                       number: 2,
+                       title: "LAMINA MALEDICTUM".to_string(),
+                       length: Duration::from_millis(258000),
+                       recording: RecordingRef {
+                           mbid: Mbid::parse_str("0eeb0621-8013-4c0e-8e49-ddfd78d56051").unwrap(),
+                           title: "Lamina Maledictum".to_string(),
+                           length: Duration::from_millis(258000),
+                       },
+                   });
+        assert_eq!(medium.tracks[2],
+                   ReleaseTrack {
+                       mbid: Mbid::parse_str("e57b3990-eb36-476e-beac-583e0bbe6f87").unwrap(),
+                       position: 3,
+                       number: 3,
+                       title: "SARNATH".to_string(),
+                       length: Duration::from_millis(228000),
+                       recording: RecordingRef {
+                           mbid: Mbid::parse_str("53f87e98-351e-453e-b949-bdacf4cbeccd").unwrap(),
+                           title: "Sarnath".to_string(),
+                           length: Duration::from_millis(228000),
+                       },
+                   });
     }
 }
