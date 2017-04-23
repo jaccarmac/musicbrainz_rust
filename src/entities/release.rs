@@ -24,18 +24,18 @@ impl FromXml for ReleaseTrack {
     fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
         where R: XPathReader<'d>
     {
-        let mbid = reader.read_mbid(".//mb:track/@id")?;
+        let mbid = reader.read_mbid("mb:track/@id")?;
         Ok(ReleaseTrack {
                mbid: mbid,
-               position: reader.evaluate(".//mb:track/mb:position/text()")?.string().parse()?,
-               number: reader.evaluate(".//mb:track/mb:number/text()")?.string().parse()?,
-               title: reader.evaluate(".//mb:track/mb:title/text()")?.string(),
+               position: reader.evaluate("mb:track/mb:position/text()")?.string().parse()?,
+               number: reader.evaluate("mb:track/mb:number/text()")?.string().parse()?,
+               title: reader.evaluate("mb:track/mb:title/text()")?.string(),
                length: Duration::from_millis(reader
-                                                 .evaluate(".//mb:track/mb:length/text()")?
+                                                 .evaluate("mb:track/mb:length/text()")?
                                                  .string()
                                                  .parse()?),
                recording: {
-                   match reader.evaluate(".//mb:track/mb:recording")? {
+                   match reader.evaluate("mb:track/mb:recording")? {
                        Nodeset(nodeset) => {
                            if let Some(node) = nodeset.document_order_first() {
                                let context = default_musicbrainz_context();
@@ -63,7 +63,7 @@ impl FromXml for ReleaseMedium {
         where R: XPathReader<'d>
     {
         // TODO: test offset for multi cd releases.
-        let tracks_node = reader.evaluate(".//mb:medium/mb:track-list/mb:track")?;
+        let tracks_node = reader.evaluate("mb:track-list/mb:track")?;
         let tracks = match tracks_node {
             Nodeset(nodeset) => {
                 let context = default_musicbrainz_context();
@@ -75,7 +75,7 @@ impl FromXml for ReleaseMedium {
             _ => Vec::new(),
         };
         Ok(ReleaseMedium {
-               position: reader.evaluate(".//mb:medium/mb:position/text()")?.string().parse()?,
+               position: reader.evaluate("mb:position/text()")?.string().parse()?,
                tracks: tracks,
            })
     }
