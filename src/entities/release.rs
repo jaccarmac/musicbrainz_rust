@@ -5,7 +5,7 @@ pub struct ReleaseTrack {
     /// MBID of the entity in the MusicBrainz database.
     pub mbid: Mbid,
 
-    // TODO: docstring
+    // TODO: docstring ; what is the difference between `position` and `number`???
     pub position: u16,
     // TODO: docstring
     pub number: u16,
@@ -66,7 +66,6 @@ impl FromXml for ReleaseMedium {
     fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
         where R: XPathReader<'d>
     {
-        // TODO: test offset for multi cd releases.
         let tracks_node = reader.evaluate(".//mb:track-list/mb:track")?;
         let tracks = match tracks_node {
             Nodeset(nodeset) => {
@@ -376,5 +375,32 @@ mod tests {
                            length: Duration::from_millis(228000),
                        },
                    });
+    }
+
+    #[test]
+    fn multi_cd() {
+        // url: https://musicbrainz.org/ws/2/release/ce22b20d-3a45-4e47-abaa-b7c8d10281fa?inc=artists+labels+recordings
+        let xml = r#"<?xml version="1.0" encoding="UTF-8"?><metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#"><release id="ce22b20d-3a45-4e47-abaa-b7c8d10281fa"><title>PINK</title><status id="4e304316-386d-3409-af2e-78857eec5cfe">Official</status><quality>normal</quality><disambiguation>deluxe edition</disambiguation><packaging id="ec27701a-4a22-37f4-bfac-6616e0f9750a">Jewel Case</packaging><text-representation><language>eng</language><script>Latn</script></text-representation><artist-credit><name-credit><artist id="57652bf8-cfe8-42e7-b9a7-5572a7080d8d"><name>Boris</name><sort-name>Boris</sort-name><disambiguation>Japanese stoner rock band</disambiguation></artist></name-credit></artist-credit><date>2016-07-08</date><country>US</country><release-event-list count="1"><release-event><date>2016-07-08</date><area id="489ce91b-6658-3307-9877-795b68554c98"><name>United States</name><sort-name>United States</sort-name><iso-3166-1-code-list><iso-3166-1-code>US</iso-3166-1-code></iso-3166-1-code-list></area></release-event></release-event-list><barcode>634457723825</barcode><asin>B01G5FGXKO</asin><cover-art-archive><artwork>false</artwork><count>0</count><front>false</front><back>false</back></cover-art-archive><label-info-list count="1"><label-info><catalog-number>SH-160</catalog-number><label id="8e3fe8a2-3c49-4ec1-8a1f-c31c2814611f"><name>Sargent House</name><sort-name>Sargent House</sort-name></label></label-info></label-info-list><medium-list count="2"><medium><title>PINK</title><position>1</position><format id="9712d52a-4509-3d4b-a1a2-67c88c643e31">CD</format><track-list offset="0" count="11"><track id="6274d68c-6d29-493f-88c9-4aec708069ce"><position>1</position><number>1</number><title>Farewell</title><length>453440</length><recording id="5ba6314d-a27f-43a6-8972-4c8b4f69315e"><title>決別</title><length>453400</length></recording></track><track id="5e67884f-1c13-4aa5-bb1a-caa0dbeabe42"><position>2</position><number>2</number><title>PINK</title><length>260027</length><recording id="4940d931-771d-4f5c-92cc-759124510ef3"><title>Pink</title><length>260040</length></recording></track><track id="c99f5afd-d2a3-40fa-9542-2598404e2f0a"><position>3</position><number>3</number><title>Woman on the Screen</title><length>158520</length><recording id="52ae10f9-b2c2-4222-b473-90dfc6969eef"><title>スクリーンの女</title><length>158520</length></recording></track><track id="2a657e73-6c55-43b8-8425-ba768e8eacc2"><position>4</position><number>4</number><title>Nothing Special</title><length>137920</length><recording id="d052834e-fba4-44f6-8950-e3fc36919f27"><title>別になんでもない</title><length>137920</length></recording></track><track id="971a34b3-e605-4a25-8736-8217da4b69c1"><position>5</position><number>5</number><title>Blackout</title><length>289680</length><recording id="2035f506-7c78-4af2-96f5-44600706e43b"><title>ブラックアウト</title><length>289680</length></recording></track><track id="cbf9e05f-28aa-4f9c-bdb2-d77be85d9a68"><position>6</position><number>6</number><length>105120</length><recording id="0dbf447d-dccb-4611-bf8c-ffd1f6b1a547"><title>Electric</title><length>105053</length></recording></track><track id="53fffbdf-d99e-491c-bbc2-30b76da427bd"><position>7</position><number>7</number><title>Pseudo Bread</title><length>269867</length><recording id="0cccd22c-b503-47d8-bb38-a9dfab973f24"><title>偽ブレッド</title><length>269867</length></recording></track><track id="d1762100-6008-47c3-9bf3-f6acfa072924"><position>8</position><number>8</number><title>Afterburner</title><length>262267</length><recording id="2dcb9772-99c9-495a-b7b6-791ef0844b52"><title>ぬるい炎</title><length>262267</length></recording></track><track id="76a521e6-73d6-47cb-a75a-fba751058a81"><position>9</position><number>9</number><title>Six, Three Times</title><length>173200</length><recording id="2fa562d2-2280-4f48-afa2-1a5267409c00"><title>6を3つ</title><length>173200</length></recording></track><track id="1b85a40e-03ae-431a-bfdf-6991327dfc74"><position>10</position><number>10</number><length>121493</length><recording id="b44b1ac2-feb0-425c-9bd7-b48879c7281b"><title>My Machine</title><length>121333</length></recording></track><track id="c8930110-bfcb-4991-9f3a-d9cc1e9b0d89"><position>11</position><number>11</number><title>Just Abandoned My-Self</title><length>1095770</length><recording id="0f11623c-a4f6-403b-9c72-8d74decf070a"><title>俺を捨てたところ</title><length>1094666</length></recording></track></track-list></medium><medium><title>PINK Sessions &quot;Forbidden Songs&quot;</title><position>2</position><format id="9712d52a-4509-3d4b-a1a2-67c88c643e31">CD</format><track-list offset="0" count="9"><track id="f7c6667a-46b6-4df5-9b0e-1702c80b3712"><position>1</position><number>1</number><length>375040</length><recording id="d69de264-f6e6-49a9-934a-79914c245263"><title>Your Name -Part 2-</title><length>375040</length></recording></track><track id="5d5450fe-92e5-435f-b845-a43c07508b34"><position>2</position><number>2</number><length>198560</length><recording id="986cfca3-9ac5-4249-afa0-6e40fa284ad6"><title>Heavy Rock Industry</title><length>198560</length></recording></track><track id="d2ae8b58-f020-4cdf-a5a3-d467cbc06821"><position>3</position><number>3</number><length>237386</length><recording id="a84f0c2c-af6e-4f4d-be22-4571a37280a2"><title>SOFUN</title><length>237386</length></recording></track><track id="739b61f3-9416-4899-8579-a06028ac80bc"><position>4</position><number>4</number><length>155240</length><recording id="a5147598-2347-4099-b3aa-0ed77e8d37be"><title>non/sha/lant</title><length>155240</length></recording></track><track id="1fd119c4-593f-4724-82ac-bd3b46aefeb8"><position>5</position><number>5</number><length>225066</length><recording id="8dba3582-ba98-4b38-a552-91280529faad"><title>Room Noise</title><length>225066</length></recording></track><track id="f9f564a5-92f1-4e00-845b-27b55ff2322b"><position>6</position><number>6</number><length>266106</length><recording id="3f2af038-4acb-4868-b38d-8599b1d5c09b"><title>Talisman</title><length>266106</length></recording></track><track id="a8c132ea-7a74-4c5f-8b18-724122901e6c"><position>7</position><number>7</number><length>470480</length><recording id="f8650ed2-7cd7-4616-9173-0a645ee250db"><title>N.F. Sorrow</title><length>470480</length></recording></track><track id="f3ae7bea-9bd0-4d13-b4fc-0fdb784117ae"><position>8</position><number>8</number><length>261826</length><recording id="67b98d9a-7549-4f29-a4b0-1a7f0312fff7"><title>Are You Ready?</title><length>261826</length></recording></track><track id="db700691-19c4-439a-a278-38b6b90c1c1c"><position>9</position><number>9</number><length>138373</length><recording id="e4356c5a-92bd-45a7-98ec-e23bf73ae1b1"><title>Tiptoe</title><length>138373</length></recording></track></track-list></medium></medium-list></release></metadata>"#;
+        // TODO move long strings to external file as they break syntax highlighting for me... "
+
+        let reader = XPathStrReader::new(xml).unwrap();
+        let release = Release::from_xml(&reader).unwrap();
+        let mediums = release.mediums;
+
+        assert_eq!(mediums.len(), 2);
+
+        assert_eq!(mediums[0].position, 1);
+        assert_eq!(mediums[0].tracks.len(), 11);
+        assert_eq!(mediums[0].tracks[0].position, 1);
+        assert_eq!(mediums[0].tracks[0].number, 1);
+        assert_eq!(mediums[0].tracks[1].position, 2);
+        assert_eq!(mediums[0].tracks[1].number, 2);
+
+        assert_eq!(mediums[1].position, 2);
+        assert_eq!(mediums[1].tracks.len(), 9);
+        assert_eq!(mediums[1].tracks[0].position, 1);
+        assert_eq!(mediums[1].tracks[0].number, 1);
+        assert_eq!(mediums[1].tracks[1].position, 2);
+        assert_eq!(mediums[1].tracks[1].number, 2);
     }
 }
