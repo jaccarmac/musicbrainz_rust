@@ -4,6 +4,7 @@ use std;
 use std::str::FromStr;
 use std::num::ParseIntError;
 use std::error::Error;
+use std::fmt::Display;
 
 /// The `Date` type used by the `musicbrainz` crate.
 /// It allows the representation of partial dates.
@@ -76,7 +77,7 @@ impl Error for ParseDateError {
     }
 }
 
-impl std::fmt::Display for ParseDateError {
+impl Display for ParseDateError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         use self::ParseDateError::*;
         match *self {
@@ -119,9 +120,23 @@ impl FromStr for Date {
     }
 }
 
+impl Display for Date {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        match *self {
+            Date::Year{year} => write!(f, "{:04}", year),
+            Date::Month{year, month} => write!(f, "{:04}-{:02}", year, month),
+            Date::Day{year, month, day} => write!(f, "{:04}-{:02}-{:02}", year, month, day),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const DATE_1: Date = Date::Year{ year: 2017 };
+    const DATE_2: Date = Date::Month{ year: 2017, month: 4 };
+    const DATE_3: Date = Date::Day{ year: 2017, month: 4, day: 15 };
 
     #[test]
     fn parse_valid() {
@@ -129,15 +144,22 @@ mod tests {
         let date2 = Date::from_str("2017-4").unwrap();
         let date3 = Date::from_str("2017-04-15").unwrap();
 
-        assert_eq!(date1.year(), 2017);
-        assert_eq!(date1.month(), 0);
-        assert_eq!(date1.day(), 0);
-        assert_eq!(date2.year(), 2017);
-        assert_eq!(date2.month(), 4);
-        assert_eq!(date2.day(), 0);
-        assert_eq!(date3.year(), 2017);
-        assert_eq!(date3.month(), 4);
-        assert_eq!(date3.day(), 15);
+        assert_eq!(date1, DATE_1);
+        assert_eq!(date2, DATE_2);
+        assert_eq!(date3, DATE_3);
+    }
+
+    #[test]
+    fn accessors() {
+        assert_eq!(DATE_1.year(), 2017);
+        assert_eq!(DATE_1.month(), 0);
+        assert_eq!(DATE_1.day(), 0);
+        assert_eq!(DATE_2.year(), 2017);
+        assert_eq!(DATE_2.month(), 4);
+        assert_eq!(DATE_2.day(), 0);
+        assert_eq!(DATE_3.year(), 2017);
+        assert_eq!(DATE_3.month(), 4);
+        assert_eq!(DATE_3.day(), 15);
     }
 
     #[test]
@@ -158,5 +180,12 @@ mod tests {
         assert_eq!(fail1.err().unwrap(), err);
         assert_eq!(fail2.err().unwrap(), err);
         assert_eq!(fail3.err().unwrap(), err);
+    }
+
+    #[test]
+    fn to_string() {
+        assert_eq!(DATE_1.to_string(), "2017".to_string());
+        assert_eq!(DATE_2.to_string(), "2017-04".to_string());
+        assert_eq!(DATE_3.to_string(), "2017-04-15".to_string());
     }
 }
