@@ -38,7 +38,7 @@ impl FromStr for AreaType {
             "City" => Ok(AreaType::City),
             "District" => Ok(AreaType::District),
             "Island" => Ok(AreaType::Island),
-            s => Err(ReadErrorKind::InvalidData(format!("Invalid `AreaType`: '{}'", s).to_string()).into()),
+            s => Err(ReadErrorKind::InvalidData(format!("Invalid `AreaType`: '{}'", s)).into()),
         }
     }
 }
@@ -71,17 +71,17 @@ impl FromXml for Area {
     {
         Ok(Area {
                mbid: reader.read_mbid(".//mb:area/@id")?,
-               name: reader.evaluate(".//mb:area/mb:name/text()")?.string(),
-               sort_name: reader.evaluate(".//mb:area/mb:sort-name/text()")?.string(),
-               area_type: reader.evaluate(".//mb:area/@type")?.string().parse::<AreaType>()?,
-               iso_3166: non_empty_string(reader.evaluate(".//mb:area/mb:iso-3166-1-code-list/mb:iso-3166-1-code/text()")?.string()),
+               name: reader.read_string(".//mb:area/mb:name/text()")?,
+               sort_name: reader.read_string(".//mb:area/mb:sort-name/text()")?,
+               area_type: reader.read_string(".//mb:area/@type")?.parse()?,
+               iso_3166: reader.read_nstring(".//mb:area/mb:iso-3166-1-code-list/mb:iso-3166-1-code/text()")?,
            })
     }
 }
 
 impl Resource for Area {
     fn get_url(mbid: &str) -> String {
-        format!("https://musicbrainz.org/ws/2/area/{}", mbid).to_string()
+        format!("https://musicbrainz.org/ws/2/area/{}", mbid)
     }
 }
 
@@ -91,13 +91,9 @@ mod tests {
 
     #[test]
     fn area_read_xml1() {
-        let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
-                    <metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#">
-                        <area id="a1411661-be21-4290-8dc1-50f3d8e3ea67" type="City" type-id="6fd8f29a-3d0a-32fc-980d-ea697b69da78">
-                            <name>Honolulu</name>
-                            <sort-name>Honolulu</sort-name>
-                        </area>
-                    </metadata>"#;
+        // url: https://musicbrainz.org/ws/2/area/a1411661-be21-4290-8dc1-50f3d8e3ea67
+        let xml = r#"<?xml version="1.0" encoding="UTF-8"?><metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#"><area type="City" type-id="6fd8f29a-3d0a-32fc-980d-ea697b69da78" id="a1411661-be21-4290-8dc1-50f3d8e3ea67"><name>Honolulu</name><sort-name>Honolulu</sort-name></area></metadata>"#;
+
         let reader = XPathStrReader::new(xml).unwrap();
         let result = Area::from_xml(&reader).unwrap();
 
@@ -111,7 +107,8 @@ mod tests {
 
     #[test]
     fn area_read_xml2() {
-        let xml = r#"<?xml version="1.0" encoding="UTF-8"?><metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#"><area type-id="06dd0ae4-8c74-30bb-b43d-95dcedf961de" type="Country" id="2db42837-c832-3c27-b4a3-08198f75693c"><name>Japan</name><sort-name>Japan</sort-name><iso-3166-1-code-list><iso-3166-1-code>JP</iso-3166-1-code></iso-3166-1-code-list></area></metadata>"#;
+        // url: https://musicbrainz.org/ws/2/area/2db42837-c832-3c27-b4a3-08198f75693c
+        let xml = r#"<?xml version="1.0" encoding="UTF-8"?><metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#"><area type="Country" id="2db42837-c832-3c27-b4a3-08198f75693c" type-id="06dd0ae4-8c74-30bb-b43d-95dcedf961de"><name>Japan</name><sort-name>Japan</sort-name><iso-3166-1-code-list><iso-3166-1-code>JP</iso-3166-1-code></iso-3166-1-code-list></area></metadata>"#;
         let reader = XPathStrReader::new(xml).unwrap();
         let result = Area::from_xml(&reader).unwrap();
 
