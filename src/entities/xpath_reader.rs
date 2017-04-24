@@ -7,7 +7,7 @@ use sxd_document;
 use sxd_document::Package;
 use sxd_document::parser::parse as sxd_parse;
 
-use super::{Mbid, ReadError, ReadErrorKind};
+use super::{Date, Mbid, ReadError, ReadErrorKind, non_empty_string};
 
 pub fn default_musicbrainz_context<'d>() -> Context<'d> {
     let mut context = Context::<'d>::default();
@@ -20,9 +20,45 @@ pub trait XPathReader<'d> {
     /// Evaluate an XPath expression on the root of this reader.
     fn evaluate(&'d self, xpath_expr: &str) -> Result<Value<'d>, ReadError>;
 
-    /// Evaluate an XPath expression, parsing the result into a Mbid.
+    /// Return a reference to the context of the reader.
+    fn context(&'d self) -> &'d Context<'d>;
+
+    /// Evaluate an XPath expression, parsing the result into a `Mbid`.
     fn read_mbid(&'d self, xpath_expr: &str) -> Result<Mbid, ReadError> {
         Ok(Mbid::parse_str(&self.evaluate(xpath_expr)?.string()[..])?)
+    }
+
+    /// Evaluate an XPath expression, parsing the result into a `String`.
+    fn read_string(&'d self, xpath_expr: &str) -> Result<String, ReadError> {
+        Ok(self.evaluate(xpath_expr)?.string())
+    }
+
+    /// Evaluate an XPath expression, parsing the result into an `Option<String>` which is `None`
+    /// when it would be parsed into an empty string otherwise.
+    fn read_nstring(&'d self, xpath_expr: &str) -> Result<Option<String>, ReadError> {
+        Ok(non_empty_string(self.evaluate(xpath_expr)?.string()))
+    }
+
+    /// Evaluate an XPath expression, parsing the result into a `Date`.
+    fn read_date(&'d self, xpath_expr: &str) -> Result<Date, ReadError> {
+        Ok(self.evaluate(xpath_expr)?.string().parse()?)
+    }
+
+    /// Evaluates an XPath query, takes the first returned node (in document order) and creates
+    /// a new XPathNodeReader with that node.
+    fn relative_reader(&'d self, xpath_expr: &str) -> Result<XPathNodeReader<'d>, ReadError> {
+        let node: Node<'d> = match self.evaluate(xpath_expr)? {
+            Value::Nodeset(nodeset) => {
+                let res: Result<Node<'d>, ReadError> = nodeset
+                    .document_order_first()
+                    // TODO consider better error to return.
+                    .ok_or_else(||
+                        ReadErrorKind::InvalidData(format!("failed to find a node with the specified xpath '{}'", xpath_expr)).into());
+                res?
+            },
+            _ => return Err(ReadErrorKind::InvalidData(format!("xpath didn't specify a nodeset: '{}'", xpath_expr)).into())
+        };
+        XPathNodeReader::new(node, self.context())
     }
 }
 
@@ -63,6 +99,10 @@ impl<'d> XPathReader<'d> for XPathStrReader<'d> {
         let xpath = build_xpath(&self.factory, xpath_expr)?;
         xpath.evaluate(&self.context, self.package.as_document().root()).map_err(ReadError::from)
     }
+
+    fn context(&'d self) -> &'d Context<'d> {
+        &self.context
+    }
 }
 
 impl<'d> XPathNodeReader<'d> {
@@ -81,6 +121,10 @@ impl<'d> XPathReader<'d> for XPathNodeReader<'d> {
     fn evaluate(&'d self, xpath_expr: &str) -> Result<Value<'d>, ReadError> {
         let xpath = build_xpath(&self.factory, xpath_expr)?;
         xpath.evaluate(self.context, self.node).map_err(ReadError::from)
+    }
+
+    fn context(&'d self) -> &'d Context<'d> {
+        self.context
     }
 }
 
@@ -117,4 +161,3 @@ mod tests {
 
     }
 }
-

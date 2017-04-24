@@ -12,16 +12,18 @@ mod date;
 pub use self::date::{Date, ParseDateError};
 
 mod refs;
-pub use self::refs::{AreaRef, ArtistRef, LabelRef, RecordingRef};
+pub use self::refs::{AreaRef, ArtistRef, LabelRef, RecordingRef, ReleaseRef};
 
 mod area;
 mod label;
 mod recording;
 mod release;
+mod release_group;
 pub use self::area::{Area, AreaType};
 pub use self::label::Label;
 pub use self::recording::Recording;
 pub use self::release::{Release, ReleaseTrack, ReleaseStatus, ReleaseMedium};
+pub use self::release_group::{ReleaseGroup, ReleaseGroupType, ReleaseGroupPrimaryType, ReleaseGroupSecondaryType};
 
 /// Identifier for entities in the MusicBrainz database.
 pub type Mbid = uuid::Uuid;
@@ -236,9 +238,6 @@ impl FromStr for LabelType {
         }
     }
 }
-
-
-pub struct ReleaseGroup {}
 
 pub struct Series {}
 

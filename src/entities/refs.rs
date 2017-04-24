@@ -94,3 +94,27 @@ impl FromXml for RecordingRef {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ReleaseRef {
+    pub mbid: Mbid,
+    pub title: String,
+    pub date: Date,
+    pub status: ReleaseStatus,
+    pub country: String
+}
+
+impl FromXml for ReleaseRef {
+    /// reader root at : `release` element which is the `ReleaseRef` to be parsed.
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
+        where R: XPathReader<'d>
+    {
+        Ok(ReleaseRef {
+            mbid: reader.read_mbid(".//@id")?,
+            title: reader.evaluate(".//mb:title/text()")?.string(),
+            date: reader.read_date(".//mb:date/text()")?,
+            status: reader.evaluate(".//mb:status/text()")?.string().parse()?,
+            country: reader.evaluate(".//mb:country/text()")?.string()
+        })
+    }
+}
+
