@@ -1,9 +1,7 @@
 // TODO: this should probably be moved to a different file/directory
 
-use sxd_xpath;
 use sxd_xpath::{Context, Factory, Value, XPath};
 use sxd_xpath::nodeset::Node;
-use sxd_document;
 use sxd_document::Package;
 use sxd_document::parser::parse as sxd_parse;
 

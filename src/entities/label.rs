@@ -49,7 +49,7 @@ pub struct Label {
 
 impl Resource for Label {
     fn get_url(mbid: &str) -> String {
-        format!("https://musicbrainz.org/ws/2/label/{}?inc=aliases", mbid).to_string()
+        format!("https://musicbrainz.org/ws/2/label/{}?inc=aliases", mbid)
     }
 }
 
@@ -65,28 +65,20 @@ impl FromXml for Label {
 
         Ok(Label {
                mbid: reader.read_mbid(".//mb:label/@id")?,
-               name: reader.evaluate(".//mb:label/mb:name/text()")?.string(),
-               sort_name: reader.evaluate(".//mb:label/mb:sort-name/text()")?.string(),
-               disambiguation:
-                   non_empty_string(reader
-                                        .evaluate(".//mb:label/mb:disambiguation/text()")?
-                                        .string()),
+               name: reader.read_string(".//mb:label/mb:name/text()")?,
+               sort_name: reader.read_string(".//mb:label/mb:sort-name/text()")?,
+               disambiguation: reader.read_nstring(".//mb:label/mb:disambiguation/text()")?,
                aliases: aliases,
-               label_code: non_empty_string(reader
-                                                .evaluate(".//mb:label/mb:label-code/text()")?
-                                                .string()),
-               label_type: reader.evaluate(".//mb:label/@type")?.string().parse::<LabelType>()?,
-               country: non_empty_string(reader.evaluate(".//mb:label/mb:country/text()")?.string()),
+               label_code: reader.read_nstring(".//mb:label/mb:label-code/text()")?,
+               label_type: reader.read_string(".//mb:label/@type")?.parse()?,
+               country: reader.read_nstring(".//mb:label/mb:country/text()")?,
                ipi_code: None, // TODO
                isni_code: None, // TODO
-               begin_date: reader
-                   .evaluate(".//mb:label/mb:life-span/mb:begin/text()")?
-                   .string()
+               begin_date: reader.read_string(".//mb:label/mb:life-span/mb:begin/text()")?
                    .parse::<Date>()
+                   // TODO avoid this, map over the option and return the errors
                    .ok(),
-               end_date: reader
-                   .evaluate(".//mb:label/mb:life-span/mb:end/text()")?
-                   .string()
+               end_date: reader.read_string(".//mb:label/mb:life-span/mb:end/text()")?
                    .parse::<Date>()
                    .ok(),
            })

@@ -32,7 +32,7 @@ impl FromXml for Recording {
     {
         Ok(Recording {
                mbid: reader.read_mbid(".//mb:recording/@id")?,
-               title: reader.evaluate(".//mb:recording/mb:title/text()")?.string(),
+               title: reader.read_string(".//mb:recording/mb:title/text()")?,
                artists: match reader.evaluate(".//mb:recording/mb:artist-credit/mb:name-credit")? {
                    Nodeset(nodeset) => {
                        let context = default_musicbrainz_context();
@@ -51,17 +51,9 @@ impl FromXml for Recording {
                                                    .evaluate(".//mb:recording/mb:length/text()")?
                                                    .string()
                                                    .parse::<u64>()?),
-               isrc_code:
-                   non_empty_string(reader
-                                        .evaluate(".//mb:recording/mb:isrc-list/mb:isrc/@id")?
-                                        .string()),
-               disambiguation:
-                   non_empty_string(reader
-                                        .evaluate(".//mb:recording/mb:disambiguation/text()")?
-                                        .string()),
-               annotation: non_empty_string(reader
-                                                .evaluate(".//mb:recording/mb:annotation/text()")?
-                                                .string()),
+               isrc_code: reader.read_nstring(".//mb:recording/mb:isrc-list/mb:isrc/@id")?,
+               disambiguation: reader.read_nstring(".//mb:recording/mb:disambiguation/text()")?,
+               annotation: reader.read_nstring(".//mb:recording/mb:annotation/text()")?,
            })
     }
 }
@@ -70,7 +62,6 @@ impl Resource for Recording {
     fn get_url(mbid: &str) -> String {
         format!("https://musicbrainz.org/ws/2/recording/{}?inc=artists+annotation+isrcs",
                 mbid)
-                .to_string()
     }
 }
 
