@@ -33,20 +33,7 @@ impl FromXml for Recording {
         Ok(Recording {
                mbid: reader.read_mbid(".//mb:recording/@id")?,
                title: reader.read_string(".//mb:recording/mb:title/text()")?,
-               artists: match reader.evaluate(".//mb:recording/mb:artist-credit/mb:name-credit")? {
-                   Nodeset(nodeset) => {
-                       let context = default_musicbrainz_context();
-                       let res: Result<Vec<ArtistRef>, ReadError> = nodeset
-                           .iter()
-                           .map(|node| {
-                                    XPathNodeReader::new(node, &context)
-                                        .and_then(|r| ArtistRef::from_xml(&r))
-                                })
-                           .collect();
-                       res?
-                   }
-                   _ => Vec::new(),
-               },
+               artists: reader.read_vec(".//mb:recording/mb:artist-credit/mb:name-credit")?,
                duration: Duration::from_millis(reader
                                                    .evaluate(".//mb:recording/mb:length/text()")?
                                                    .string()

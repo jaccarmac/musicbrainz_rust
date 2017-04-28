@@ -33,16 +33,22 @@ fn non_empty_string(s: String) -> Option<String> {
     if s.is_empty() { None } else { Some(s) }
 }
 
+/// A trait to abstract the idea of something that can be parsed from XML.
 pub trait FromXml
     where Self: Sized
 {
     /// Read an instance of `Self` from the provided `reader`.
     ///
-    /// Implementors are supposed to scan relative to the provided node and not from the root of
-    /// the document, so sub-schema parsing becomes possible.
-    /// (i.e. they should use `.//axis` XPath expressions instead of `//axis` ones.)
+    /// The reader can be relative to a specific element. Whether the root of the document contains
+    /// the element to be parsed or is the element to be parsed can be specified by the additional
+    /// traits `FromXmlContained` and `FromXmlElement`.
     fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError> where R: XPathReader<'d>;
 }
+
+/// `FromXml` takes a reader as input whose root element **contains** the relevant element.
+pub trait FromXmlContained : FromXml {}
+/// `FromXml` takes a reader as input whose root element **is** the relevant element.
+pub trait FromXmlElement : FromXml {}
 
 pub trait Resource {
     /// Returns the url where one can get a ressource in the valid format for parsing from.

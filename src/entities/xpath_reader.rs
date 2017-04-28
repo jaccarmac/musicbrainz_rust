@@ -2,10 +2,11 @@
 
 use sxd_xpath::{Context, Factory, Value, XPath};
 use sxd_xpath::nodeset::Node;
+use sxd_xpath::Value::Nodeset;
 use sxd_document::Package;
 use sxd_document::parser::parse as sxd_parse;
 
-use super::{Date, Mbid, ReadError, ReadErrorKind, non_empty_string};
+use super::{Date, Mbid, FromXmlElement, ReadError, ReadErrorKind, non_empty_string};
 
 pub fn default_musicbrainz_context<'d>() -> Context<'d> {
     let mut context = Context::<'d>::default();
@@ -42,6 +43,25 @@ pub trait XPathReader<'d> {
         Ok(self.evaluate(xpath_expr)?.string().parse()?)
     }
 
+    /// Read the nodeset specified by the `xpath_expr`, which can be anything which can be deserialized from XML,
+    /// into a `Vec`. If something other than a nodeset or nothing is found an empty vector will be returned.
+    fn read_vec<Item>(&'d self, xpath_expr: &str) -> Result<Vec<Item>, ReadError>
+        where Item: FromXmlElement
+    {
+        match self.evaluate(xpath_expr)? {
+            Nodeset(nodeset) => {
+                let context = default_musicbrainz_context();
+                nodeset.document_order()
+                    .iter()
+                    .map(|node| {
+                             XPathNodeReader::new(*node, &context).and_then(|r| Item::from_xml(&r))
+                         })
+                    .collect()
+            }
+            _ => Ok(Vec::new()),
+        }
+    }
+
     /// Evaluates an XPath query, takes the first returned node (in document order) and creates
     /// a new XPathNodeReader with that node.
     fn relative_reader(&'d self, xpath_expr: &str) -> Result<XPathNodeReader<'d>, ReadError> {
@@ -53,8 +73,8 @@ pub trait XPathReader<'d> {
                     .ok_or_else(||
                         ReadErrorKind::InvalidData(format!("failed to find a node with the specified xpath '{}'", xpath_expr)).into());
                 res?
-            },
-            _ => return Err(ReadErrorKind::InvalidData(format!("xpath didn't specify a nodeset: '{}'", xpath_expr)).into())
+            }
+            _ => return Err(ReadErrorKind::InvalidData(format!("xpath didn't specify a nodeset: '{}'", xpath_expr)).into()),
         };
         XPathNodeReader::new(node, self.context())
     }

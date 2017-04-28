@@ -65,6 +65,7 @@ pub struct Area {
     pub iso_3166: Option<String>,
 }
 
+impl FromXmlContained for Area {}
 impl FromXml for Area {
     fn from_xml<'d, R>(reader: &'d R) -> Result<Area, ReadError>
         where R: XPathReader<'d>

@@ -20,6 +20,7 @@ pub struct ReleaseTrack {
     pub recording: RecordingRef,
 }
 
+impl FromXmlElement for ReleaseTrack {}
 impl FromXml for ReleaseTrack {
     fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
         where R: XPathReader<'d>
@@ -27,7 +28,7 @@ impl FromXml for ReleaseTrack {
         let mbid = reader.read_mbid(".//@id")?;
         Ok(ReleaseTrack {
                mbid: mbid,
-               position: reader.evaluate(".//mb:position/text()")?.string().parse()?,
+               position: reader.read_string(".//mb:position/text()")?.parse()?,
                number: reader.evaluate(".//mb:number/text()")?.string().parse()?,
                title: reader.evaluate(".//mb:title/text()")?.string(),
                length: Duration::from_millis(reader.evaluate(".//mb:length/text()")?
@@ -62,24 +63,14 @@ pub struct ReleaseMedium {
     tracks: Vec<ReleaseTrack>,
 }
 
+impl FromXmlElement for ReleaseMedium {}
 impl FromXml for ReleaseMedium {
     fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
         where R: XPathReader<'d>
     {
-        let tracks_node = reader.evaluate(".//mb:track-list/mb:track")?;
-        let tracks = match tracks_node {
-            Nodeset(nodeset) => {
-                let context = default_musicbrainz_context();
-                let res: Result<Vec<ReleaseTrack>, ReadError> = nodeset.document_order().iter().map(|node| {
-                    XPathNodeReader::new(*node, &context).and_then(|r| ReleaseTrack::from_xml(&r))
-                }).collect();
-                res?
-            }
-            _ => Vec::new(),
-        };
         Ok(ReleaseMedium {
-               position: reader.evaluate(".//mb:position/text()")?.string().parse()?,
-               tracks: tracks,
+               position: reader.read_string(".//mb:position/text()")?.parse()?,
+               tracks: reader.read_vec(".//mb:track-list/mb:track")?
            })
     }
 }
@@ -164,72 +155,29 @@ pub struct Release {
     pub mediums: Vec<ReleaseMedium>,
 }
 
+impl FromXmlContained for Release {}
 impl FromXml for Release {
     fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
         where R: XPathReader<'d>
     {
-        let context = default_musicbrainz_context();
-        let artists_node = reader.evaluate(".//mb:release/mb:artist-credit/mb:name-credit")?;
-        let artists = match artists_node {
-            Nodeset(nodeset) => {
-                let res: Result<Vec<ArtistRef>, ReadError> = nodeset.iter().map(|node| {
-                    XPathNodeReader::new(node, &context).and_then(|r| ArtistRef::from_xml(&r))
-                }).collect();
-                res?
-            }
-            _ => Vec::new(),
-        };
-
-        let labels_node = reader.evaluate(".//mb:release/mb:label-info-list/mb:label-info")?;
-        let labels = match labels_node {
-            Nodeset(nodeset) => {
-                let res: Result<Vec<LabelRef>, ReadError> = nodeset.document_order().iter().map(|node| {
-                    XPathNodeReader::new(*node, &context).and_then(|r| LabelRef::from_xml(&r))
-                }).collect();
-                res?
-            }
-            _ => Vec::new(),
-        };
-
-        let mediums_node = reader.evaluate(".//mb:release/mb:medium-list/mb:medium")?;
-        let mediums = match mediums_node {
-            Nodeset(nodeset) => {
-                let res: Result<Vec<ReleaseMedium>, ReadError> = nodeset.document_order().iter().map(|node| {
-                    XPathNodeReader::new(*node, &context).and_then(|r| ReleaseMedium::from_xml(&r))
-                }).collect();
-                res?
-            }
-            _ => Vec::new(),
-        };
-
         Ok(Release {
                mbid: reader.read_mbid(".//mb:release/@id")?,
-               title: reader.evaluate(".//mb:release/mb:title/text()")?.string(),
-               artists: artists,
-               date: reader.evaluate(".//mb:release/mb:date/text()")?.string().parse::<Date>()?,
-               country: reader.evaluate(".//mb:release/mb:country/text()")?.string(),
-               labels: labels,
-               catalogue_number: non_empty_string(
-                   reader.evaluate(".//mb:release/mb:label-info-list/mb:label-info/mb:catalog-number/text()")?.string()),
-               barcode: non_empty_string(reader
-                                             .evaluate(".//mb:release/mb:barcode/text()")?
-                                             .string()),
+               title: reader.read_string(".//mb:release/mb:title/text()")?,
+               artists: reader.read_vec(".//mb:release/mb:artist-credit/mb:name-credit")?,
+               date: reader.read_date(".//mb:release/mb:date/text()")?,
+               country: reader.read_string(".//mb:release/mb:country/text()")?,
+               labels: reader.read_vec(".//mb:release/mb:label-info-list/mb:label-info")?,
+               catalogue_number: reader.read_nstring(".//mb:release/mb:label-info-list/mb:label-info/mb:catalog-number/text()")?,
+               barcode: reader.read_nstring(".//mb:release/mb:barcode/text()")?,
                status: reader
                    .evaluate(".//mb:release/mb:status/text()")?
                    .string()
                    .parse::<ReleaseStatus>()?,
-               packaging: non_empty_string(reader.evaluate(".//mb:release/mb:packaging/text()")?.string()),
-               language: reader
-                   .evaluate(".//mb:release/mb:text-representation/mb:language/text()")?
-                   .string(),
-               script: reader
-                   .evaluate(".//mb:release/mb:text-representation/mb:script/text()")?
-                   .string(),
-               disambiguation:
-                   non_empty_string(reader
-                                        .evaluate(".//mb:release/mb:disambiguation/text()")?
-                                        .string()),
-               mediums: mediums
+               packaging: reader.read_nstring(".//mb:release/mb:packaging/text()")?,
+               language: reader.read_string(".//mb:release/mb:text-representation/mb:language/text()")?,
+               script: reader.read_string(".//mb:release/mb:text-representation/mb:script/text()")?,
+               disambiguation: reader.read_nstring(".//mb:release/mb:disambiguation/text()")?,
+               mediums: reader.read_vec(".//mb:release/mb:medium-list/mb:medium")?
            })
     }
 }

@@ -17,15 +17,16 @@ pub struct AreaRef {
     pub iso_3166: Option<String>,
 }
 
+impl FromXmlContained for AreaRef {}
 impl FromXml for AreaRef {
     fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
         where R: XPathReader<'d>
     {
         Ok(AreaRef {
                mbid: reader.read_mbid(".//mb:area/@id")?,
-               name: reader.evaluate(".//mb:area/mb:name/text()")?.string(),
-               sort_name: reader.evaluate(".//mb:area/mb:sort-name/text()")?.string(),
-               iso_3166: non_empty_string(reader.evaluate(".//mb:area/mb:iso-3166-1-code-list/mb:iso-3166-1-code/text()")?.string()),
+               name: reader.read_string(".//mb:area/mb:name/text()")?,
+               sort_name: reader.read_string(".//mb:area/mb:sort-name/text()")?,
+               iso_3166: reader.read_nstring(".//mb:area/mb:iso-3166-1-code-list/mb:iso-3166-1-code/text()")?,
            })
     }
 }
@@ -40,14 +41,15 @@ pub struct ArtistRef {
     pub sort_name: String,
 }
 
+impl FromXmlElement for ArtistRef {}
 impl FromXml for ArtistRef {
     fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
         where R: XPathReader<'d>
     {
         Ok(ArtistRef {
-               mbid: reader.read_mbid(".//mb:artist/@id")?,
-               name: reader.evaluate(".//mb:artist/mb:name/text()")?.string(),
-               sort_name: reader.evaluate(".//mb:artist/mb:sort-name/text()")?.string(),
+               mbid: reader.read_mbid(".//@id")?,
+               name: reader.read_string(".//mb:name/text()")?,
+               sort_name: reader.read_string(".//mb:sort-name/text()")?,
            })
     }
 }
@@ -60,17 +62,16 @@ pub struct LabelRef {
     pub label_code: Option<String>,
 }
 
+impl FromXmlElement for LabelRef {}
 impl FromXml for LabelRef {
     fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
         where R: XPathReader<'d>
     {
         Ok(LabelRef {
-               mbid: reader.read_mbid(".//mb:label/@id")?,
-               name: reader.evaluate(".//mb:label/mb:name/text()")?.string(),
-               sort_name: reader.evaluate(".//mb:label/mb:sort-name/text()")?.string(),
-               label_code: non_empty_string(reader
-                                                .evaluate(".//mb:label/mb:label-code/text()")?
-                                                .string()),
+               mbid: reader.read_mbid(".//@id")?,
+               name: reader.read_string(".//mb:name/text()")?,
+               sort_name: reader.read_string(".//mb:sort-name/text()")?,
+               label_code: reader.read_nstring(".//mb:label-code/text()")?
            })
     }
 }
@@ -82,13 +83,15 @@ pub struct RecordingRef {
     pub length: Duration
 }
 
+impl FromXmlElement for RecordingRef {}
 impl FromXml for RecordingRef {
     fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
         where R: XPathReader<'d>
     {
         Ok(RecordingRef {
             mbid: reader.read_mbid(".//@id")?,
-            title: reader.evaluate(".//mb:title/text()")?.string(),
+            title: reader.read_string(".//mb:title/text()")?,
+            // TODO reader.read<Duration>
             length: Duration::from_millis(reader.evaluate(".//mb:length/text()")?.string().parse::<u64>()?)
         })
     }
@@ -103,6 +106,7 @@ pub struct ReleaseRef {
     pub country: String
 }
 
+impl FromXmlElement for ReleaseRef {}
 impl FromXml for ReleaseRef {
     /// reader root at : `release` element which is the `ReleaseRef` to be parsed.
     fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
@@ -110,10 +114,10 @@ impl FromXml for ReleaseRef {
     {
         Ok(ReleaseRef {
             mbid: reader.read_mbid(".//@id")?,
-            title: reader.evaluate(".//mb:title/text()")?.string(),
+            title: reader.read_string(".//mb:title/text()")?,
             date: reader.read_date(".//mb:date/text()")?,
-            status: reader.evaluate(".//mb:status/text()")?.string().parse()?,
-            country: reader.evaluate(".//mb:country/text()")?.string()
+            status: reader.read_string(".//mb:status/text()")?.parse()?,
+            country: reader.read_string(".//mb:country/text()")?
         })
     }
 }

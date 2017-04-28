@@ -1,6 +1,6 @@
 use super::*;
 
-// TODO: docstring
+/// The primary type of a release group.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ReleaseGroupPrimaryType {
     Album,
@@ -28,7 +28,7 @@ impl FromStr for ReleaseGroupPrimaryType {
     }
 }
 
-// TODO: docstring
+/// Secondary types of a release group. There can be any number of secondary types.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ReleaseGroupSecondaryType {
     Compilation,
@@ -65,21 +65,21 @@ impl FromStr for ReleaseGroupSecondaryType {
     }
 }
 
-// TODO docstring
+/// The type of a `ReleaseGroup`.
+///
+/// For more information consult: https://musicbrainz.org/doc/Release_Group/Type
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ReleaseGroupType {
     pub primary: Option<ReleaseGroupPrimaryType>,
     pub secondary: Vec<ReleaseGroupSecondaryType>,
 }
 
+impl FromXmlElement for ReleaseGroupType {}
 impl FromXml for ReleaseGroupType {
-    /// reader root has to be the release group element (containing the `primary-type` and
-    /// `secondary-type-list` elements).
     fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
         where R: XPathReader<'d>
     {
         use sxd_xpath::Value::Nodeset;
-        let context = default_musicbrainz_context();
 
         Ok(ReleaseGroupType {
                primary: match reader.read_nstring(".//mb:primary-type/text()")? {
@@ -134,16 +134,16 @@ impl Resource for ReleaseGroup {
     }
 }
 
+impl FromXmlContained for ReleaseGroup {}
 impl FromXml for ReleaseGroup {
-    /// root of reader has to point at `metadata` element containing the `release-group` element.
     fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
         where R: XPathReader<'d>
     {
         Ok(ReleaseGroup {
             mbid: reader.read_mbid(".//mb:release-group/@id")?,
             title: reader.read_string(".//mb:release-group/mb:title/text()")?,
-            releases: Vec::new(), // TODO
-            artists: Vec::new(), // TODO
+            releases: reader.read_vec(".//mb:release-group/mb:release-list/mb:release")?,
+            artists: reader.read_vec(".//mb:release-group/mb:artist-credit/mb:name-credit/mb:artist")?,
             release_type: {
                 let rel_reader = reader.relative_reader(".//mb:release-group")?;
                 ReleaseGroupType::from_xml(&rel_reader)?
