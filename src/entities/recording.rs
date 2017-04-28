@@ -34,8 +34,7 @@ impl FromXml for Recording {
                mbid: reader.read_mbid(".//mb:recording/@id")?,
                title: reader.read_string(".//mb:recording/mb:title/text()")?,
                artists: reader.read_vec(".//mb:recording/mb:artist-credit/mb:name-credit")?,
-               duration: Duration::from_millis(reader
-                                                   .evaluate(".//mb:recording/mb:length/text()")?
+               duration: Duration::from_millis(reader.evaluate(".//mb:recording/mb:length/text()")?
                                                    .string()
                                                    .parse::<u64>()?),
                isrc_code: reader.read_nstring(".//mb:recording/mb:isrc-list/mb:isrc/@id")?,

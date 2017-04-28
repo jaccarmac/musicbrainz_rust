@@ -6,13 +6,30 @@ use sxd_xpath::Value::Nodeset;
 use sxd_document::Package;
 use sxd_document::parser::parse as sxd_parse;
 
-use super::{Date, Mbid, FromXmlElement, ReadError, ReadErrorKind, non_empty_string};
+use super::{Date, Mbid, ReadError, ReadErrorKind, non_empty_string};
 
 pub fn default_musicbrainz_context<'d>() -> Context<'d> {
     let mut context = Context::<'d>::default();
     context.set_namespace("mb", "http://musicbrainz.org/ns/mmd-2.0#");
     context
 }
+
+/// A trait to abstract the idea of something that can be parsed from XML.
+pub trait FromXml
+    where Self: Sized
+{
+    /// Read an instance of `Self` from the provided `reader`.
+    ///
+    /// The reader can be relative to a specific element. Whether the root of the document contains
+    /// the element to be parsed or is the element to be parsed can be specified by the additional
+    /// traits `FromXmlContained` and `FromXmlElement`.
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError> where R: XPathReader<'d>;
+}
+
+/// `FromXml` takes a reader as input whose root element **contains** the relevant element.
+pub trait FromXmlContained: FromXml {}
+/// `FromXml` takes a reader as input whose root element **is** the relevant element.
+pub trait FromXmlElement: FromXml {}
 
 /// Allows to execute XPath expressions on some kind of abstract document structure.
 pub trait XPathReader<'d> {
@@ -143,6 +160,13 @@ impl<'d> XPathReader<'d> for XPathNodeReader<'d> {
 
     fn context(&'d self) -> &'d Context<'d> {
         self.context
+    }
+}
+
+impl FromXmlElement for String {}
+impl FromXml for String {
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError> where R: XPathReader<'d> {
+        reader.read_string(".")
     }
 }
 

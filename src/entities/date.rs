@@ -81,7 +81,9 @@ impl Display for ParseDateError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         use self::ParseDateError::*;
         match *self {
-            WrongNumberOfComponents(n) => write!(f, "ParseDateError: Wrong number of components: {}", n),
+            WrongNumberOfComponents(n) => {
+                write!(f, "ParseDateError: Wrong number of components: {}", n)
+            }
             ComponentInvalid(ref err) => write!(f, "ParseDateError: Component invalid: {:?}", err),
         }
     }
@@ -123,9 +125,9 @@ impl FromStr for Date {
 impl Display for Date {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         match *self {
-            Date::Year{year} => write!(f, "{:04}", year),
-            Date::Month{year, month} => write!(f, "{:04}-{:02}", year, month),
-            Date::Day{year, month, day} => write!(f, "{:04}-{:02}-{:02}", year, month, day),
+            Date::Year { year } => write!(f, "{:04}", year),
+            Date::Month { year, month } => write!(f, "{:04}-{:02}", year, month),
+            Date::Day { year, month, day } => write!(f, "{:04}-{:02}-{:02}", year, month, day),
         }
     }
 }
@@ -134,9 +136,16 @@ impl Display for Date {
 mod tests {
     use super::*;
 
-    const DATE_1: Date = Date::Year{ year: 2017 };
-    const DATE_2: Date = Date::Month{ year: 2017, month: 4 };
-    const DATE_3: Date = Date::Day{ year: 2017, month: 4, day: 15 };
+    const DATE_1: Date = Date::Year { year: 2017 };
+    const DATE_2: Date = Date::Month {
+        year: 2017,
+        month: 4,
+    };
+    const DATE_3: Date = Date::Day {
+        year: 2017,
+        month: 4,
+        day: 15,
+    };
 
     #[test]
     fn parse_valid() {

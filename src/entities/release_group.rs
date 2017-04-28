@@ -89,13 +89,13 @@ impl FromXml for ReleaseGroupType {
                secondary:
                    match reader.evaluate(".//mb:secondary-type-list/mb:secondary-type/text()")? {
                        Nodeset(nodeset) => {
-                           let r: Result<Vec<ReleaseGroupSecondaryType>, ReadError> = nodeset.iter().map(|node| {
+                let r: Result<Vec<ReleaseGroupSecondaryType>, ReadError> = nodeset.iter().map(|node| {
                             node.text()
                                 .ok_or_else(|| ReadErrorKind::InvalidData("ReleaseGroupType read xml failure: invalid node structure.".to_string()).into())
                                 .and_then(|s| s.text().parse())
                             }).collect();
-                           r?
-                       }
+                r?
+            }
                        _ => Vec::new(),
                    },
            })
@@ -125,12 +125,13 @@ pub struct ReleaseGroup {
     pub disambiguation: Option<String>,
 
     // TODO: docstring
-    pub annotation: Option<String>
+    pub annotation: Option<String>,
 }
 
 impl Resource for ReleaseGroup {
     fn get_url(mbid: &str) -> String {
-        format!("https://musicbrainz.org/ws/2/release-group/{}?inc=annotation+artists+releases", mbid)
+        format!("https://musicbrainz.org/ws/2/release-group/{}?inc=annotation+artists+releases",
+                mbid)
     }
 }
 
@@ -140,17 +141,18 @@ impl FromXml for ReleaseGroup {
         where R: XPathReader<'d>
     {
         Ok(ReleaseGroup {
-            mbid: reader.read_mbid(".//mb:release-group/@id")?,
-            title: reader.read_string(".//mb:release-group/mb:title/text()")?,
-            releases: reader.read_vec(".//mb:release-group/mb:release-list/mb:release")?,
-            artists: reader.read_vec(".//mb:release-group/mb:artist-credit/mb:name-credit/mb:artist")?,
-            release_type: {
-                let rel_reader = reader.relative_reader(".//mb:release-group")?;
-                ReleaseGroupType::from_xml(&rel_reader)?
-            },
-            disambiguation: reader.read_nstring(".//mb:release-group/mb:disambiguation/text()")?,
-            annotation: reader.read_nstring(".//mb:release-group/mb:annotation/text()")?,
-        })
+               mbid: reader.read_mbid(".//mb:release-group/@id")?,
+               title: reader.read_string(".//mb:release-group/mb:title/text()")?,
+               releases: reader.read_vec(".//mb:release-group/mb:release-list/mb:release")?,
+               artists:
+                   reader.read_vec(".//mb:release-group/mb:artist-credit/mb:name-credit/mb:artist")?,
+               release_type: {
+                   let rel_reader = reader.relative_reader(".//mb:release-group")?;
+                   ReleaseGroupType::from_xml(&rel_reader)?
+               },
+               disambiguation: reader.read_nstring(".//mb:release-group/mb:disambiguation/text()")?,
+               annotation: reader.read_nstring(".//mb:release-group/mb:annotation/text()")?,
+           })
     }
 }
 
@@ -165,28 +167,31 @@ mod tests {
         let reader = XPathStrReader::new(xml).unwrap();
         let rg = ReleaseGroup::from_xml(&reader).unwrap();
 
-        assert_eq!(rg.mbid, Mbid::parse_str("76a4e2c2-bf7a-445e-8081-5a1e291f3b16").unwrap());
+        assert_eq!(rg.mbid,
+                   Mbid::parse_str("76a4e2c2-bf7a-445e-8081-5a1e291f3b16").unwrap());
         assert_eq!(rg.title, "Mixtape".to_string());
-        assert_eq!(rg.artists, vec![
-                   ArtistRef {
-                       mbid: Mbid::parse_str("0e6b3a2c-6a42-4b43-a4f6-c6625c5855de").unwrap(),
-                       name: "POP ETC".to_string(),
-                       sort_name: "POP ETC".to_string(),
-                   }
-        ]);
-        assert_eq!(rg.releases, vec![
-                   ReleaseRef {
-                       mbid: Mbid::parse_str("289bf4e7-0af5-433c-b5a2-493b863b4b47").unwrap(),
-                       title: "Mixtape".to_string(),
-                       date: Date::Month{year: 2012, month: 03},
-                       status: ReleaseStatus::Official,
-                       country: "US".to_string()
-                   }
-        ]);
-        assert_eq!(rg.release_type.primary, Some(ReleaseGroupPrimaryType::Album));
-        assert_eq!(rg.release_type.secondary, vec![ReleaseGroupSecondaryType::MixtapeStreet]);
+        assert_eq!(rg.artists,
+                   vec![ArtistRef {
+                            mbid: Mbid::parse_str("0e6b3a2c-6a42-4b43-a4f6-c6625c5855de").unwrap(),
+                            name: "POP ETC".to_string(),
+                            sort_name: "POP ETC".to_string(),
+                        }]);
+        assert_eq!(rg.releases,
+                   vec![ReleaseRef {
+                            mbid: Mbid::parse_str("289bf4e7-0af5-433c-b5a2-493b863b4b47").unwrap(),
+                            title: "Mixtape".to_string(),
+                            date: Date::Month {
+                                year: 2012,
+                                month: 03,
+                            },
+                            status: ReleaseStatus::Official,
+                            country: "US".to_string(),
+                        }]);
+        assert_eq!(rg.release_type.primary,
+                   Some(ReleaseGroupPrimaryType::Album));
+        assert_eq!(rg.release_type.secondary,
+                   vec![ReleaseGroupSecondaryType::MixtapeStreet]);
         assert_eq!(rg.disambiguation, None);
         assert_eq!(rg.annotation, None);
     }
 }
-

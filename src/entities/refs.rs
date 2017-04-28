@@ -71,7 +71,7 @@ impl FromXml for LabelRef {
                mbid: reader.read_mbid(".//@id")?,
                name: reader.read_string(".//mb:name/text()")?,
                sort_name: reader.read_string(".//mb:sort-name/text()")?,
-               label_code: reader.read_nstring(".//mb:label-code/text()")?
+               label_code: reader.read_nstring(".//mb:label-code/text()")?,
            })
     }
 }
@@ -80,7 +80,7 @@ impl FromXml for LabelRef {
 pub struct RecordingRef {
     pub mbid: Mbid,
     pub title: String,
-    pub length: Duration
+    pub length: Duration,
 }
 
 impl FromXmlElement for RecordingRef {}
@@ -89,11 +89,13 @@ impl FromXml for RecordingRef {
         where R: XPathReader<'d>
     {
         Ok(RecordingRef {
-            mbid: reader.read_mbid(".//@id")?,
-            title: reader.read_string(".//mb:title/text()")?,
-            // TODO reader.read<Duration>
-            length: Duration::from_millis(reader.evaluate(".//mb:length/text()")?.string().parse::<u64>()?)
-        })
+               mbid: reader.read_mbid(".//@id")?,
+               title: reader.read_string(".//mb:title/text()")?,
+               // TODO reader.read<Duration>
+               length: Duration::from_millis(reader.evaluate(".//mb:length/text()")?
+                                                 .string()
+                                                 .parse::<u64>()?),
+           })
     }
 }
 
@@ -103,22 +105,20 @@ pub struct ReleaseRef {
     pub title: String,
     pub date: Date,
     pub status: ReleaseStatus,
-    pub country: String
+    pub country: String,
 }
 
 impl FromXmlElement for ReleaseRef {}
 impl FromXml for ReleaseRef {
-    /// reader root at : `release` element which is the `ReleaseRef` to be parsed.
     fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
         where R: XPathReader<'d>
     {
         Ok(ReleaseRef {
-            mbid: reader.read_mbid(".//@id")?,
-            title: reader.read_string(".//mb:title/text()")?,
-            date: reader.read_date(".//mb:date/text()")?,
-            status: reader.read_string(".//mb:status/text()")?.parse()?,
-            country: reader.read_string(".//mb:country/text()")?
-        })
+               mbid: reader.read_mbid(".//@id")?,
+               title: reader.read_string(".//mb:title/text()")?,
+               date: reader.read_date(".//mb:date/text()")?,
+               status: reader.read_string(".//mb:status/text()")?.parse()?,
+               country: reader.read_string(".//mb:country/text()")?,
+           })
     }
 }
-

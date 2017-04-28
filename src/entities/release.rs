@@ -70,7 +70,7 @@ impl FromXml for ReleaseMedium {
     {
         Ok(ReleaseMedium {
                position: reader.read_string(".//mb:position/text()")?.parse()?,
-               tracks: reader.read_vec(".//mb:track-list/mb:track")?
+               tracks: reader.read_vec(".//mb:track-list/mb:track")?,
            })
     }
 }
