@@ -11,7 +11,7 @@ pub enum ReleaseGroupPrimaryType {
 }
 
 impl FromStr for ReleaseGroupPrimaryType {
-    type Err = ReadError;
+    type Err = ParseError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "Album" => Ok(ReleaseGroupPrimaryType::Album),
@@ -20,7 +20,7 @@ impl FromStr for ReleaseGroupPrimaryType {
             "Broadcast" => Ok(ReleaseGroupPrimaryType::Broadcast),
             "Other" => Ok(ReleaseGroupPrimaryType::Other),
             _ => {
-                Err(ReadErrorKind::InvalidData(format!("Unknown ReleaseGroupPrimaryType: '{}'", s)
+                Err(ParseErrorKind::InvalidData(format!("Unknown ReleaseGroupPrimaryType: '{}'", s)
                                                    .to_string())
                             .into())
             }
@@ -43,7 +43,7 @@ pub enum ReleaseGroupSecondaryType {
 }
 
 impl FromStr for ReleaseGroupSecondaryType {
-    type Err = ReadError;
+    type Err = ParseError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "Compilation" => Ok(ReleaseGroupSecondaryType::Compilation),
@@ -56,7 +56,7 @@ impl FromStr for ReleaseGroupSecondaryType {
             "DJ-mix" => Ok(ReleaseGroupSecondaryType::DjMix),
             "Mixtape/Street" => Ok(ReleaseGroupSecondaryType::MixtapeStreet),
             _ => {
-                Err(ReadErrorKind::InvalidData(format!("Unknown ReleaseSecondaryPrimaryType: '{}'",
+                Err(ParseErrorKind::InvalidData(format!("Unknown ReleaseSecondaryPrimaryType: '{}'",
                                                        s)
                                                        .to_string())
                             .into())
@@ -76,7 +76,7 @@ pub struct ReleaseGroupType {
 
 impl FromXmlElement for ReleaseGroupType {}
 impl FromXml for ReleaseGroupType {
-    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ParseError>
         where R: XPathReader<'d>
     {
         use sxd_xpath::Value::Nodeset;
@@ -89,9 +89,9 @@ impl FromXml for ReleaseGroupType {
                secondary:
                    match reader.evaluate(".//mb:secondary-type-list/mb:secondary-type/text()")? {
                        Nodeset(nodeset) => {
-                let r: Result<Vec<ReleaseGroupSecondaryType>, ReadError> = nodeset.iter().map(|node| {
+                let r: Result<Vec<ReleaseGroupSecondaryType>, ParseError> = nodeset.iter().map(|node| {
                             node.text()
-                                .ok_or_else(|| ReadErrorKind::InvalidData("ReleaseGroupType read xml failure: invalid node structure.".to_string()).into())
+                                .ok_or_else(|| ParseErrorKind::InvalidData("ReleaseGroupType read xml failure: invalid node structure.".to_string()).into())
                                 .and_then(|s| s.text().parse())
                             }).collect();
                 r?
@@ -129,15 +129,15 @@ pub struct ReleaseGroup {
 }
 
 impl Resource for ReleaseGroup {
-    fn get_url(mbid: &str) -> String {
+    fn get_url(mbid: &Mbid) -> String {
         format!("https://musicbrainz.org/ws/2/release-group/{}?inc=annotation+artists+releases",
-                mbid)
+                mbid.hyphenated())
     }
 }
 
 impl FromXmlContained for ReleaseGroup {}
 impl FromXml for ReleaseGroup {
-    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ParseError>
         where R: XPathReader<'d>
     {
         Ok(ReleaseGroup {

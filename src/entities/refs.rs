@@ -19,7 +19,7 @@ pub struct AreaRef {
 
 impl FromXmlContained for AreaRef {}
 impl FromXml for AreaRef {
-    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ParseError>
         where R: XPathReader<'d>
     {
         Ok(AreaRef {
@@ -43,7 +43,7 @@ pub struct ArtistRef {
 
 impl FromXmlElement for ArtistRef {}
 impl FromXml for ArtistRef {
-    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ParseError>
         where R: XPathReader<'d>
     {
         Ok(ArtistRef {
@@ -64,7 +64,7 @@ pub struct LabelRef {
 
 impl FromXmlElement for LabelRef {}
 impl FromXml for LabelRef {
-    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ParseError>
         where R: XPathReader<'d>
     {
         Ok(LabelRef {
@@ -85,7 +85,7 @@ pub struct RecordingRef {
 
 impl FromXmlElement for RecordingRef {}
 impl FromXml for RecordingRef {
-    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ParseError>
         where R: XPathReader<'d>
     {
         Ok(RecordingRef {
@@ -110,7 +110,7 @@ pub struct ReleaseRef {
 
 impl FromXmlElement for ReleaseRef {}
 impl FromXml for ReleaseRef {
-    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ParseError>
         where R: XPathReader<'d>
     {
         Ok(ReleaseRef {

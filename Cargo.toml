@@ -5,10 +5,9 @@ authors = ["Leo Schwarz <mail@leoschwarz.com>"]
 
 [dependencies]
 error-chain = "0.10.0"
+hyper = "0.10.9"
 sxd-document = "0.2.1"
 sxd-xpath = "0.4.0"
-#sxd-document = { git = "https://github.com/leoschwarz/sxd-document", branch = "std-error" }
-#sxd-xpath = { git = "https://github.com/leoschwarz/sxd-xpath", branch = "std-error" }
 
 [dependencies.uuid]
 version = "0.4.0"

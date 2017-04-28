@@ -28,7 +28,7 @@ pub enum AreaType {
 }
 
 impl FromStr for AreaType {
-    type Err = ReadError;
+    type Err = ParseError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "Country" => Ok(AreaType::Country),
@@ -38,7 +38,7 @@ impl FromStr for AreaType {
             "City" => Ok(AreaType::City),
             "District" => Ok(AreaType::District),
             "Island" => Ok(AreaType::Island),
-            s => Err(ReadErrorKind::InvalidData(format!("Invalid `AreaType`: '{}'", s)).into()),
+            s => Err(ParseErrorKind::InvalidData(format!("Invalid `AreaType`: '{}'", s)).into()),
         }
     }
 }
@@ -67,7 +67,7 @@ pub struct Area {
 
 impl FromXmlContained for Area {}
 impl FromXml for Area {
-    fn from_xml<'d, R>(reader: &'d R) -> Result<Area, ReadError>
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Area, ParseError>
         where R: XPathReader<'d>
     {
         Ok(Area {
@@ -81,8 +81,8 @@ impl FromXml for Area {
 }
 
 impl Resource for Area {
-    fn get_url(mbid: &str) -> String {
-        format!("https://musicbrainz.org/ws/2/area/{}", mbid)
+    fn get_url(mbid: &Mbid) -> String {
+        format!("https://musicbrainz.org/ws/2/area/{}", mbid.hyphenated())
     }
 }
 

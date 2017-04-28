@@ -10,7 +10,7 @@ pub enum EventType {
 
 /* TODO
 impl FromStr for EventType {
-    type Err = ReadError;
+    type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {

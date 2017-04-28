@@ -6,7 +6,7 @@ use sxd_xpath::Value::Nodeset;
 use sxd_document::Package;
 use sxd_document::parser::parse as sxd_parse;
 
-use super::{Date, Mbid, ReadError, ReadErrorKind, non_empty_string};
+use super::{Date, Mbid, ParseError, ParseErrorKind, non_empty_string};
 
 pub fn default_musicbrainz_context<'d>() -> Context<'d> {
     let mut context = Context::<'d>::default();
@@ -23,7 +23,7 @@ pub trait FromXml
     /// The reader can be relative to a specific element. Whether the root of the document contains
     /// the element to be parsed or is the element to be parsed can be specified by the additional
     /// traits `FromXmlContained` and `FromXmlElement`.
-    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError> where R: XPathReader<'d>;
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ParseError> where R: XPathReader<'d>;
 }
 
 /// `FromXml` takes a reader as input whose root element **contains** the relevant element.
@@ -34,35 +34,35 @@ pub trait FromXmlElement: FromXml {}
 /// Allows to execute XPath expressions on some kind of abstract document structure.
 pub trait XPathReader<'d> {
     /// Evaluate an XPath expression on the root of this reader.
-    fn evaluate(&'d self, xpath_expr: &str) -> Result<Value<'d>, ReadError>;
+    fn evaluate(&'d self, xpath_expr: &str) -> Result<Value<'d>, ParseError>;
 
     /// Return a reference to the context of the reader.
     fn context(&'d self) -> &'d Context<'d>;
 
     /// Evaluate an XPath expression, parsing the result into a `Mbid`.
-    fn read_mbid(&'d self, xpath_expr: &str) -> Result<Mbid, ReadError> {
+    fn read_mbid(&'d self, xpath_expr: &str) -> Result<Mbid, ParseError> {
         Ok(Mbid::parse_str(&self.evaluate(xpath_expr)?.string()[..])?)
     }
 
     /// Evaluate an XPath expression, parsing the result into a `String`.
-    fn read_string(&'d self, xpath_expr: &str) -> Result<String, ReadError> {
+    fn read_string(&'d self, xpath_expr: &str) -> Result<String, ParseError> {
         Ok(self.evaluate(xpath_expr)?.string())
     }
 
     /// Evaluate an XPath expression, parsing the result into an `Option<String>` which is `None`
     /// when it would be parsed into an empty string otherwise.
-    fn read_nstring(&'d self, xpath_expr: &str) -> Result<Option<String>, ReadError> {
+    fn read_nstring(&'d self, xpath_expr: &str) -> Result<Option<String>, ParseError> {
         Ok(non_empty_string(self.evaluate(xpath_expr)?.string()))
     }
 
     /// Evaluate an XPath expression, parsing the result into a `Date`.
-    fn read_date(&'d self, xpath_expr: &str) -> Result<Date, ReadError> {
+    fn read_date(&'d self, xpath_expr: &str) -> Result<Date, ParseError> {
         Ok(self.evaluate(xpath_expr)?.string().parse()?)
     }
 
     /// Read the nodeset specified by the `xpath_expr`, which can be anything which can be deserialized from XML,
     /// into a `Vec`. If something other than a nodeset or nothing is found an empty vector will be returned.
-    fn read_vec<Item>(&'d self, xpath_expr: &str) -> Result<Vec<Item>, ReadError>
+    fn read_vec<Item>(&'d self, xpath_expr: &str) -> Result<Vec<Item>, ParseError>
         where Item: FromXmlElement
     {
         match self.evaluate(xpath_expr)? {
@@ -81,17 +81,17 @@ pub trait XPathReader<'d> {
 
     /// Evaluates an XPath query, takes the first returned node (in document order) and creates
     /// a new XPathNodeReader with that node.
-    fn relative_reader(&'d self, xpath_expr: &str) -> Result<XPathNodeReader<'d>, ReadError> {
+    fn relative_reader(&'d self, xpath_expr: &str) -> Result<XPathNodeReader<'d>, ParseError> {
         let node: Node<'d> = match self.evaluate(xpath_expr)? {
             Value::Nodeset(nodeset) => {
-                let res: Result<Node<'d>, ReadError> = nodeset
+                let res: Result<Node<'d>, ParseError> = nodeset
                     .document_order_first()
                     // TODO consider better error to return.
                     .ok_or_else(||
-                        ReadErrorKind::InvalidData(format!("failed to find a node with the specified xpath '{}'", xpath_expr)).into());
+                        ParseErrorKind::InvalidData(format!("failed to find a node with the specified xpath '{}'", xpath_expr)).into());
                 res?
             }
-            _ => return Err(ReadErrorKind::InvalidData(format!("xpath didn't specify a nodeset: '{}'", xpath_expr)).into()),
+            _ => return Err(ParseErrorKind::InvalidData(format!("xpath didn't specify a nodeset: '{}'", xpath_expr)).into()),
         };
         XPathNodeReader::new(node, self.context())
     }
@@ -111,16 +111,16 @@ pub struct XPathNodeReader<'d> {
     context: &'d Context<'d>,
 }
 
-fn build_xpath(factory: &Factory, xpath_expr: &str) -> Result<XPath, ReadError> {
+fn build_xpath(factory: &Factory, xpath_expr: &str) -> Result<XPath, ParseError> {
     factory
         .build(xpath_expr)?
-        .ok_or_else(|| ReadErrorKind::InternalError("XPath instance was `None`!".to_string()).into())
+        .ok_or_else(|| ParseErrorKind::InternalError("XPath instance was `None`!".to_string()).into())
 }
 
 impl<'d> XPathStrReader<'d> {
     // TODO: Once the rest of the code stabilizes consider taking a reference to a context, so it
     // doesn't have to be created anew for each reader instance.
-    pub fn new(xml: &str) -> Result<Self, ReadError> {
+    pub fn new(xml: &str) -> Result<Self, ParseError> {
         Ok(Self {
                context: default_musicbrainz_context(),
                factory: Factory::default(),
@@ -130,9 +130,9 @@ impl<'d> XPathStrReader<'d> {
 }
 
 impl<'d> XPathReader<'d> for XPathStrReader<'d> {
-    fn evaluate(&'d self, xpath_expr: &str) -> Result<Value<'d>, ReadError> {
+    fn evaluate(&'d self, xpath_expr: &str) -> Result<Value<'d>, ParseError> {
         let xpath = build_xpath(&self.factory, xpath_expr)?;
-        xpath.evaluate(&self.context, self.package.as_document().root()).map_err(ReadError::from)
+        xpath.evaluate(&self.context, self.package.as_document().root()).map_err(ParseError::from)
     }
 
     fn context(&'d self) -> &'d Context<'d> {
@@ -141,7 +141,7 @@ impl<'d> XPathReader<'d> for XPathStrReader<'d> {
 }
 
 impl<'d> XPathNodeReader<'d> {
-    pub fn new<N>(node: N, context: &'d Context<'d>) -> Result<Self, ReadError>
+    pub fn new<N>(node: N, context: &'d Context<'d>) -> Result<Self, ParseError>
         where N: Into<Node<'d>>
     {
         Ok(Self {
@@ -153,9 +153,9 @@ impl<'d> XPathNodeReader<'d> {
 }
 
 impl<'d> XPathReader<'d> for XPathNodeReader<'d> {
-    fn evaluate(&'d self, xpath_expr: &str) -> Result<Value<'d>, ReadError> {
+    fn evaluate(&'d self, xpath_expr: &str) -> Result<Value<'d>, ParseError> {
         let xpath = build_xpath(&self.factory, xpath_expr)?;
-        xpath.evaluate(self.context, self.node).map_err(ReadError::from)
+        xpath.evaluate(self.context, self.node).map_err(ParseError::from)
     }
 
     fn context(&'d self) -> &'d Context<'d> {
@@ -165,7 +165,7 @@ impl<'d> XPathReader<'d> for XPathNodeReader<'d> {
 
 impl FromXmlElement for String {}
 impl FromXml for String {
-    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError> where R: XPathReader<'d> {
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ParseError> where R: XPathReader<'d> {
         reader.read_string(".")
     }
 }

@@ -48,27 +48,21 @@ pub struct Label {
 }
 
 impl Resource for Label {
-    fn get_url(mbid: &str) -> String {
-        format!("https://musicbrainz.org/ws/2/label/{}?inc=aliases", mbid)
+    fn get_url(mbid: &Mbid) -> String {
+        format!("https://musicbrainz.org/ws/2/label/{}?inc=aliases", mbid.hyphenated())
     }
 }
 
 impl FromXml for Label {
-    fn from_xml<'d, R>(reader: &'d R) -> Result<Label, ReadError>
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Label, ParseError>
         where R: XPathReader<'d>
     {
-        let aliases: Vec<String> =
-            match reader.evaluate(".//mb:label/mb:alias-list/mb:alias/text()")? {
-                Nodeset(nodeset) => nodeset.iter().map(|node| node.string_value()).collect(),
-                _ => Vec::new(),
-            };
-
         Ok(Label {
                mbid: reader.read_mbid(".//mb:label/@id")?,
                name: reader.read_string(".//mb:label/mb:name/text()")?,
                sort_name: reader.read_string(".//mb:label/mb:sort-name/text()")?,
                disambiguation: reader.read_nstring(".//mb:label/mb:disambiguation/text()")?,
-               aliases: aliases,
+               aliases: reader.read_vec(".//mb:label/mb:alias-list/mb:alias/text()")?,
                label_code: reader.read_nstring(".//mb:label/mb:label-code/text()")?,
                label_type: reader.read_string(".//mb:label/@type")?.parse()?,
                country: reader.read_nstring(".//mb:label/mb:country/text()")?,

@@ -22,7 +22,7 @@ pub struct ReleaseTrack {
 
 impl FromXmlElement for ReleaseTrack {}
 impl FromXml for ReleaseTrack {
-    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ParseError>
         where R: XPathReader<'d>
     {
         let mbid = reader.read_mbid(".//@id")?;
@@ -42,10 +42,10 @@ impl FromXml for ReleaseTrack {
                                let reader = XPathNodeReader::new(node, &context)?;
                                RecordingRef::from_xml(&reader)?
                            } else {
-                               return Err(ReadErrorKind::InvalidData(format!("ReleaseTrack without RecordingRef, mbid: {}", mbid).to_string()).into());
+                               return Err(ParseErrorKind::InvalidData(format!("ReleaseTrack without RecordingRef, mbid: {}", mbid).to_string()).into());
                            }
                        }
-                       _ => return Err(ReadErrorKind::InvalidData(format!("ReleaseTrack without RecordingRef, mbid: {}", mbid).to_string()).into()),
+                       _ => return Err(ParseErrorKind::InvalidData(format!("ReleaseTrack without RecordingRef, mbid: {}", mbid).to_string()).into()),
                    }
                },
            })
@@ -65,7 +65,7 @@ pub struct ReleaseMedium {
 
 impl FromXmlElement for ReleaseMedium {}
 impl FromXml for ReleaseMedium {
-    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ParseError>
         where R: XPathReader<'d>
     {
         Ok(ReleaseMedium {
@@ -93,7 +93,7 @@ pub enum ReleaseStatus {
 }
 
 impl FromStr for ReleaseStatus {
-    type Err = ReadError;
+    type Err = ParseError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "Official" => Ok(ReleaseStatus::Official),
@@ -101,7 +101,7 @@ impl FromStr for ReleaseStatus {
             "Bootleg" => Ok(ReleaseStatus::Bootleg),
             "PseudoRelease" => Ok(ReleaseStatus::PseudoRelease),
             s => {
-                Err(ReadErrorKind::InvalidData(format!("Unknown `ReleaseStatus`: '{}'", s)
+                Err(ParseErrorKind::InvalidData(format!("Unknown `ReleaseStatus`: '{}'", s)
                                                    .to_string())
                             .into())
             }
@@ -157,7 +157,7 @@ pub struct Release {
 
 impl FromXmlContained for Release {}
 impl FromXml for Release {
-    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ParseError>
         where R: XPathReader<'d>
     {
         Ok(Release {
@@ -183,10 +183,9 @@ impl FromXml for Release {
 }
 
 impl Resource for Release {
-    fn get_url(mbid: &str) -> String {
+    fn get_url(mbid: &Mbid) -> String {
         format!("https://musicbrainz.org/ws/2/release/{}?inc=aliases+artists+labels+recordings",
-                mbid)
-                .to_string()
+                mbid.hyphenated())
     }
 }
 

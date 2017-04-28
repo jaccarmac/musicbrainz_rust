@@ -31,7 +31,7 @@ pub enum ArtistType {
 }
 
 impl FromStr for ArtistType {
-    type Err = ReadError;
+    type Err = ParseError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "Person" => Ok(ArtistType::Person),
@@ -41,7 +41,7 @@ impl FromStr for ArtistType {
             "Character" => Ok(ArtistType::Character),
             "Other" => Ok(ArtistType::Other),
             t => {
-                return Err(ReadErrorKind::InvalidData(format!("Unknown artist type: {}", t)
+                return Err(ParseErrorKind::InvalidData(format!("Unknown artist type: {}", t)
                                                           .to_string())
                                    .into())
             }
@@ -93,7 +93,7 @@ pub struct Artist {
 
 impl FromXmlContained for Artist {}
 impl FromXml for Artist {
-    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ParseError>
         where R: XPathReader<'d>
     {
         let area = match reader.evaluate(".//mb:artist") {
@@ -134,8 +134,8 @@ impl FromXml for Artist {
 }
 
 impl Resource for Artist {
-    fn get_url(mbid: &str) -> String {
-        format!("https://musicbrainz.org/ws/2/artist/{}?inc=aliases", mbid).to_string()
+    fn get_url(mbid: &Mbid) -> String {
+        format!("https://musicbrainz.org/ws/2/artist/{}?inc=aliases", mbid.hyphenated())
     }
 }
 

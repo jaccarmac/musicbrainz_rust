@@ -27,7 +27,7 @@ pub struct Recording {
 }
 
 impl FromXml for Recording {
-    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ReadError>
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ParseError>
         where R: XPathReader<'d>
     {
         Ok(Recording {
@@ -45,9 +45,9 @@ impl FromXml for Recording {
 }
 
 impl Resource for Recording {
-    fn get_url(mbid: &str) -> String {
+    fn get_url(mbid: &Mbid) -> String {
         format!("https://musicbrainz.org/ws/2/recording/{}?inc=artists+annotation+isrcs",
-                mbid)
+                mbid.hyphenated())
     }
 }
 

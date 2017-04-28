@@ -6,8 +6,8 @@ pub use std::time::Duration;
 
 mod xpath_reader;
 use self::xpath_reader::*;
-pub use self::xpath_reader::{FromXml, FromXmlContained, FromXmlElement};
-use super::{ReadError, ReadErrorKind};
+pub use self::xpath_reader::{FromXml, FromXmlContained, FromXmlElement, XPathStrReader};
+use super::{ParseError, ParseErrorKind};
 
 mod date;
 pub use self::date::{Date, ParseDateError};
@@ -39,10 +39,9 @@ fn non_empty_string(s: String) -> Option<String> {
     if s.is_empty() { None } else { Some(s) }
 }
 
-
 pub trait Resource {
     /// Returns the url where one can get a ressource in the valid format for parsing from.
-    fn get_url(mbid: &str) -> String;
+    fn get_url(mbid: &Mbid) -> String;
 }
 
 pub struct Instrument {}
@@ -72,7 +71,7 @@ pub enum LabelType {
 }
 
 impl FromStr for LabelType {
-    type Err = ReadError;
+    type Err = ParseError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "Imprint" => Ok(LabelType::Imprint),
@@ -83,7 +82,7 @@ impl FromStr for LabelType {
             "Holding" => Ok(LabelType::Holding),
             "RightsSociety" => Ok(LabelType::RightsSociety),
             s => {
-                Err(ReadErrorKind::InvalidData(format!("Invalid `LabelType`: '{}'", s).to_string())
+                Err(ParseErrorKind::InvalidData(format!("Invalid `LabelType`: '{}'", s).to_string())
                         .into())
             }
         }
