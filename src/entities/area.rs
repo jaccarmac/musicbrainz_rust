@@ -82,7 +82,7 @@ impl FromXml for Area {
 
 impl Resource for Area {
     fn get_url(mbid: &Mbid) -> String {
-        format!("https://musicbrainz.org/ws/2/area/{}", mbid.hyphenated())
+        format!("https://musicbrainz.org/ws/2/area/{}", mbid)
     }
 }
 
@@ -99,7 +99,7 @@ mod tests {
         let result = Area::from_xml(&reader).unwrap();
 
         assert_eq!(result.mbid,
-                   Mbid::parse_str("a1411661-be21-4290-8dc1-50f3d8e3ea67").unwrap());
+                   Mbid::from_str("a1411661-be21-4290-8dc1-50f3d8e3ea67").unwrap());
         assert_eq!(result.name, "Honolulu".to_string());
         assert_eq!(result.sort_name, "Honolulu".to_string());
         assert_eq!(result.area_type, AreaType::City);
@@ -114,7 +114,7 @@ mod tests {
         let result = Area::from_xml(&reader).unwrap();
 
         assert_eq!(result.mbid,
-                   Mbid::parse_str("2db42837-c832-3c27-b4a3-08198f75693c").unwrap());
+                   Mbid::from_str("2db42837-c832-3c27-b4a3-08198f75693c").unwrap());
         assert_eq!(result.name, "Japan".to_string());
         assert_eq!(result.sort_name, "Japan".to_string());
         assert_eq!(result.area_type, AreaType::Country);

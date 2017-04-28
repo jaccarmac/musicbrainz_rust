@@ -3,6 +3,8 @@ use super::entities::{Mbid, Resource, FromXml, FromXmlContained, XPathStrReader}
 
 use std::io::Read;
 
+pub mod search;
+
 /// Configuration for the client.
 pub struct ClientConfig {
     /// The user-agent to be sent with every request to the API.

@@ -31,8 +31,8 @@ pub use self::release::{Release, ReleaseTrack, ReleaseStatus, ReleaseMedium};
 pub use self::release_group::{ReleaseGroup, ReleaseGroupType, ReleaseGroupPrimaryType,
                               ReleaseGroupSecondaryType};
 
-/// Identifier for entities in the MusicBrainz database.
-pub type Mbid = uuid::Uuid;
+mod mbid;
+pub use self::mbid::Mbid;
 
 /// Takes a string and returns an option only containing the string if it was not empty.
 fn non_empty_string(s: String) -> Option<String> {

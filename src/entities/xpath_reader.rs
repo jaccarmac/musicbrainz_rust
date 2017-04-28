@@ -41,7 +41,7 @@ pub trait XPathReader<'d> {
 
     /// Evaluate an XPath expression, parsing the result into a `Mbid`.
     fn read_mbid(&'d self, xpath_expr: &str) -> Result<Mbid, ParseError> {
-        Ok(Mbid::parse_str(&self.evaluate(xpath_expr)?.string()[..])?)
+        Ok(self.read_string(xpath_expr)?.parse()?)
     }
 
     /// Evaluate an XPath expression, parsing the result into a `String`.

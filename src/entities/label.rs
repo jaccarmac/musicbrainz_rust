@@ -49,7 +49,7 @@ pub struct Label {
 
 impl Resource for Label {
     fn get_url(mbid: &Mbid) -> String {
-        format!("https://musicbrainz.org/ws/2/label/{}?inc=aliases", mbid.hyphenated())
+        format!("https://musicbrainz.org/ws/2/label/{}?inc=aliases", mbid)
     }
 }
 
@@ -90,7 +90,7 @@ mod tests {
         let label = Label::from_xml(&reader).unwrap();
 
         assert_eq!(label.mbid,
-                   Mbid::parse_str("c029628b-6633-439e-bcee-ed02e8a338f7").unwrap());
+                   Mbid::from_str("c029628b-6633-439e-bcee-ed02e8a338f7").unwrap());
         assert_eq!(label.name, "EMI".to_string());
         assert_eq!(label.sort_name, "EMI".to_string());
         assert_eq!(label.disambiguation,

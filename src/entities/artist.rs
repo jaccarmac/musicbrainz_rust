@@ -135,7 +135,7 @@ impl FromXml for Artist {
 
 impl Resource for Artist {
     fn get_url(mbid: &Mbid) -> String {
-        format!("https://musicbrainz.org/ws/2/artist/{}?inc=aliases", mbid.hyphenated())
+        format!("https://musicbrainz.org/ws/2/artist/{}?inc=aliases", mbid)
     }
 }
 
@@ -151,7 +151,7 @@ mod tests {
         let result = Artist::from_xml(&reader).unwrap();
 
         assert_eq!(result.mbid,
-                   Mbid::parse_str("90e7c2f9-273b-4d6c-a662-ab2d73ea4b8e").unwrap());
+                   Mbid::from_str("90e7c2f9-273b-4d6c-a662-ab2d73ea4b8e").unwrap());
         assert_eq!(result.name, "NECRONOMIDOL".to_string());
         assert_eq!(result.sort_name, "NECRONOMIDOL".to_string());
         assert_eq!(result.aliases, Vec::<String>::new());
@@ -165,7 +165,7 @@ mod tests {
 
         let area = result.area.unwrap();
         assert_eq!(area.mbid,
-                   Mbid::parse_str("2db42837-c832-3c27-b4a3-08198f75693c").unwrap());
+                   Mbid::from_str("2db42837-c832-3c27-b4a3-08198f75693c").unwrap());
         assert_eq!(area.name, "Japan".to_string());
         assert_eq!(area.sort_name, "Japan".to_string());
         assert_eq!(area.iso_3166, Some("JP".to_string()));
@@ -184,7 +184,7 @@ mod tests {
         let result = Artist::from_xml(&reader).unwrap();
 
         assert_eq!(result.mbid,
-                   Mbid::parse_str("650e7db6-b795-4eb5-a702-5ea2fc46c848").unwrap());
+                   Mbid::from_str("650e7db6-b795-4eb5-a702-5ea2fc46c848").unwrap());
         assert_eq!(result.name, "Lady Gaga".to_string());
         assert_eq!(result.sort_name, "Lady Gaga".to_string());
         let mut aliases_sorted = result.aliases.clone();
@@ -203,7 +203,7 @@ mod tests {
 
         let area = result.area.unwrap();
         assert_eq!(area.mbid,
-                   Mbid::parse_str("489ce91b-6658-3307-9877-795b68554c98").unwrap());
+                   Mbid::from_str("489ce91b-6658-3307-9877-795b68554c98").unwrap());
         assert_eq!(area.name, "United States".to_string());
         assert_eq!(area.sort_name, "United States".to_string());
         assert_eq!(area.iso_3166, Some("US".to_string()));

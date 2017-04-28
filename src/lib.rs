@@ -63,6 +63,7 @@ pub mod errors {
 
         foreign_links {
             HttpError(::hyper::error::Error);
+            HyperParserError(::hyper::error::ParseError);
             IoError(::std::io::Error);
         }
     }

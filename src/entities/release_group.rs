@@ -1,4 +1,5 @@
 use super::*;
+use std::fmt::{self, Display};
 
 /// The primary type of a release group.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -25,6 +26,20 @@ impl FromStr for ReleaseGroupPrimaryType {
                             .into())
             }
         }
+    }
+}
+
+impl Display for ReleaseGroupPrimaryType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use self::ReleaseGroupPrimaryType::*;
+        let s = match *self {
+            Album => "Album",
+            Single => "Single",
+            EP => "EP",
+            Broadcast => "Broadcast",
+            Other => "Other"
+        };
+        write!(f, "{}", s)
     }
 }
 
@@ -131,7 +146,7 @@ pub struct ReleaseGroup {
 impl Resource for ReleaseGroup {
     fn get_url(mbid: &Mbid) -> String {
         format!("https://musicbrainz.org/ws/2/release-group/{}?inc=annotation+artists+releases",
-                mbid.hyphenated())
+                mbid)
     }
 }
 
@@ -168,17 +183,17 @@ mod tests {
         let rg = ReleaseGroup::from_xml(&reader).unwrap();
 
         assert_eq!(rg.mbid,
-                   Mbid::parse_str("76a4e2c2-bf7a-445e-8081-5a1e291f3b16").unwrap());
+                   Mbid::from_str("76a4e2c2-bf7a-445e-8081-5a1e291f3b16").unwrap());
         assert_eq!(rg.title, "Mixtape".to_string());
         assert_eq!(rg.artists,
                    vec![ArtistRef {
-                            mbid: Mbid::parse_str("0e6b3a2c-6a42-4b43-a4f6-c6625c5855de").unwrap(),
+                            mbid: Mbid::from_str("0e6b3a2c-6a42-4b43-a4f6-c6625c5855de").unwrap(),
                             name: "POP ETC".to_string(),
                             sort_name: "POP ETC".to_string(),
                         }]);
         assert_eq!(rg.releases,
                    vec![ReleaseRef {
-                            mbid: Mbid::parse_str("289bf4e7-0af5-433c-b5a2-493b863b4b47").unwrap(),
+                            mbid: Mbid::from_str("289bf4e7-0af5-433c-b5a2-493b863b4b47").unwrap(),
                             title: "Mixtape".to_string(),
                             date: Date::Month {
                                 year: 2012,

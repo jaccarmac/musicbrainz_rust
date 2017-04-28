@@ -47,7 +47,7 @@ impl FromXml for Recording {
 impl Resource for Recording {
     fn get_url(mbid: &Mbid) -> String {
         format!("https://musicbrainz.org/ws/2/recording/{}?inc=artists+annotation+isrcs",
-                mbid.hyphenated())
+                mbid)
     }
 }
 
@@ -63,13 +63,13 @@ mod tests {
         let recording = Recording::from_xml(&reader).unwrap();
 
         assert_eq!(recording.mbid,
-                   Mbid::parse_str("fbe3d0b9-3990-4a76-bddb-12f4a0447a2c").unwrap());
+                   Mbid::from_str("fbe3d0b9-3990-4a76-bddb-12f4a0447a2c").unwrap());
         assert_eq!(recording.title,
                    "The Perfect Drug (Nine Inch Nails)".to_string());
         assert_eq!(recording.duration, Duration::from_millis(499000));
         assert_eq!(recording.artists,
                    vec![ArtistRef {
-                            mbid: Mbid::parse_str("b7ffd2af-418f-4be2-bdd1-22f8b48613da").unwrap(),
+                            mbid: Mbid::from_str("b7ffd2af-418f-4be2-bdd1-22f8b48613da").unwrap(),
                             name: "Nine Inch Nails".to_string(),
                             sort_name: "Nine Inch Nails".to_string(),
                         }]);
