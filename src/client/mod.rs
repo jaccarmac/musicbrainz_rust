@@ -17,7 +17,7 @@ pub struct ClientConfig {
     /// * `Application name/<version> ( contact-email )`
     ///
     /// For more information see: https://musicbrainz.org/doc/XML_Web_Service/Rate_Limiting
-    user_agent: String,
+    pub user_agent: String,
 }
 
 pub struct Client {
