@@ -148,6 +148,10 @@ impl Resource for ReleaseGroup {
         format!("https://musicbrainz.org/ws/2/release-group/{}?inc=annotation+artists+releases",
                 mbid)
     }
+
+    fn base_url() -> &'static str {
+        "https://musicbrainz.org/ws/2/release-group/"
+    }
 }
 
 impl FromXmlContained for ReleaseGroup {}

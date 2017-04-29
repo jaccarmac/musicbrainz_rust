@@ -12,7 +12,7 @@ use super::{ParseError, ParseErrorKind};
 mod date;
 pub use self::date::{Date, ParseDateError};
 
-mod refs;
+pub mod refs;
 pub use self::refs::{AreaRef, ArtistRef, LabelRef, RecordingRef, ReleaseRef};
 
 mod area;
@@ -42,6 +42,10 @@ fn non_empty_string(s: String) -> Option<String> {
 pub trait Resource {
     /// Returns the url where one can get a ressource in the valid format for parsing from.
     fn get_url(mbid: &Mbid) -> String;
+
+    /// Base url of the entity, for example: `https://musicbrainz.org/ws/2/artist/`.
+    /// These are used for searches for example.
+    fn base_url() -> &'static str;
 }
 
 pub struct Instrument {}

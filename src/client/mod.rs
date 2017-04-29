@@ -51,4 +51,10 @@ impl Client {
         let reader = XPathStrReader::new(&response_body[..])?;
         Ok(Res::from_xml(&reader)?)
     }
+
+    /*
+    pub fn search_release_group<'cl>(&'cl self) -> ReleaseGroupSearchBuilder<'cl> {
+        ReleaseGroupSearchBuilder::new(self)
+    }
+    */
 }

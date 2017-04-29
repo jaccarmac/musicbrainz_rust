@@ -84,6 +84,10 @@ impl Resource for Area {
     fn get_url(mbid: &Mbid) -> String {
         format!("https://musicbrainz.org/ws/2/area/{}", mbid)
     }
+
+    fn base_url() -> &'static str {
+        "https://musicbrainz.org/ws/2/area/"
+    }
 }
 
 #[cfg(test)]

@@ -49,6 +49,10 @@ impl Resource for Recording {
         format!("https://musicbrainz.org/ws/2/recording/{}?inc=artists+annotation+isrcs",
                 mbid)
     }
+
+    fn base_url() -> &'static str {
+        "https://musicbrainz.org/ws/2/recording/"
+    }
 }
 
 #[cfg(test)]

@@ -137,6 +137,10 @@ impl Resource for Artist {
     fn get_url(mbid: &Mbid) -> String {
         format!("https://musicbrainz.org/ws/2/artist/{}?inc=aliases", mbid)
     }
+
+    fn base_url() -> &'static str {
+        "https://musicbrainz.org/ws/2/artist/"
+    }
 }
 
 #[cfg(test)]
