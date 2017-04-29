@@ -10,6 +10,6 @@ sxd-document = "0.2.1"
 sxd-xpath = "0.4.0"
 
 [dependencies.uuid]
-version = "0.4.0"
+version = "0.5.0"
 features = ["use_std"]
 
