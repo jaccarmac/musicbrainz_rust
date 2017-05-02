@@ -27,10 +27,13 @@ pub enum AreaType {
     Island,
 }
 
-impl FromStr for AreaType {
-    type Err = ParseError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
+impl FromXmlElement for AreaType {}
+impl FromXml for AreaType {
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, XpathError>
+        where R: XpathReader<'d>
+    {
+        let s = String::from_xml(reader)?;
+        match &s[..] {
             "Country" => Ok(AreaType::Country),
             "Subdivision" => Ok(AreaType::Subdivision),
             "County" => Ok(AreaType::County),
@@ -38,7 +41,7 @@ impl FromStr for AreaType {
             "City" => Ok(AreaType::City),
             "District" => Ok(AreaType::District),
             "Island" => Ok(AreaType::Island),
-            s => Err(ParseErrorKind::InvalidData(format!("Invalid `AreaType`: '{}'", s)).into()),
+            s => Err(format!("Invalid `AreaType`: '{}'", s).into()),
         }
     }
 }
@@ -67,16 +70,17 @@ pub struct Area {
 
 impl FromXmlContained for Area {}
 impl FromXml for Area {
-    fn from_xml<'d, R>(reader: &'d R) -> Result<Area, ParseError>
-        where R: XPathReader<'d>
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Area, XpathError>
+        where R: XpathReader<'d>
     {
         Ok(Area {
-               mbid: reader.read_mbid(".//mb:area/@id")?,
-               name: reader.read_string(".//mb:area/mb:name/text()")?,
-               sort_name: reader.read_string(".//mb:area/mb:sort-name/text()")?,
-               area_type: reader.read_string(".//mb:area/@type")?.parse()?,
-               iso_3166: reader.read_nstring(".//mb:area/mb:iso-3166-1-code-list/mb:iso-3166-1-code/text()")?,
-           })
+            mbid: reader.read(".//mb:area/@id")?,
+            name: reader.read(".//mb:area/mb:name/text()")?,
+            sort_name: reader.read(".//mb:area/mb:sort-name/text()")?,
+            area_type: reader.read(".//mb:area/@type")?,
+            iso_3166:
+                reader.read_option(".//mb:area/mb:iso-3166-1-code-list/mb:iso-3166-1-code/text()")?,
+        })
     }
 }
 
@@ -98,8 +102,8 @@ mod tests {
     fn area_read_xml1() {
         // url: https://musicbrainz.org/ws/2/area/a1411661-be21-4290-8dc1-50f3d8e3ea67
         let xml = r#"<?xml version="1.0" encoding="UTF-8"?><metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#"><area type="City" type-id="6fd8f29a-3d0a-32fc-980d-ea697b69da78" id="a1411661-be21-4290-8dc1-50f3d8e3ea67"><name>Honolulu</name><sort-name>Honolulu</sort-name></area></metadata>"#;
-
-        let reader = XPathStrReader::new(xml).unwrap();
+        let context = default_musicbrainz_context();
+        let reader = XpathStrReader::new(xml, &context).unwrap();
         let result = Area::from_xml(&reader).unwrap();
 
         assert_eq!(result.mbid,
@@ -114,7 +118,8 @@ mod tests {
     fn area_read_xml2() {
         // url: https://musicbrainz.org/ws/2/area/2db42837-c832-3c27-b4a3-08198f75693c
         let xml = r#"<?xml version="1.0" encoding="UTF-8"?><metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#"><area type="Country" id="2db42837-c832-3c27-b4a3-08198f75693c" type-id="06dd0ae4-8c74-30bb-b43d-95dcedf961de"><name>Japan</name><sort-name>Japan</sort-name><iso-3166-1-code-list><iso-3166-1-code>JP</iso-3166-1-code></iso-3166-1-code-list></area></metadata>"#;
-        let reader = XPathStrReader::new(xml).unwrap();
+        let context = default_musicbrainz_context();
+        let reader = XpathStrReader::new(xml, &context).unwrap();
         let result = Area::from_xml(&reader).unwrap();
 
         assert_eq!(result.mbid,

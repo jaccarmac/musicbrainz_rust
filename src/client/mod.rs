@@ -1,5 +1,5 @@
 use super::{hyper, ParseError, ClientError};
-use super::entities::{Mbid, Resource, FromXml, FromXmlContained, XPathStrReader};
+use super::entities::{Mbid, Resource};
 
 use std::io::Read;
 
@@ -48,7 +48,7 @@ impl Client {
         response.read_to_string(&mut response_body)?;
 
         // Parse the response.
-        let reader = XPathStrReader::new(&response_body[..])?;
+        let reader = XpathStrReader::new(&response_body[..])?;
         Ok(Res::from_xml(&reader)?)
     }
 

@@ -11,20 +11,21 @@ pub enum ReleaseGroupPrimaryType {
     Other,
 }
 
-impl FromStr for ReleaseGroupPrimaryType {
-    type Err = ParseError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "Album" => Ok(ReleaseGroupPrimaryType::Album),
-            "Single" => Ok(ReleaseGroupPrimaryType::Single),
-            "EP" => Ok(ReleaseGroupPrimaryType::EP),
-            "Broadcast" => Ok(ReleaseGroupPrimaryType::Broadcast),
-            "Other" => Ok(ReleaseGroupPrimaryType::Other),
-            _ => {
-                Err(ParseErrorKind::InvalidData(format!("Unknown ReleaseGroupPrimaryType: '{}'", s)
-                                                   .to_string())
-                            .into())
-            }
+// TODO: Fix this in `xpath_reader`.
+//impl FromXmlElement for ReleaseGroupPrimaryType {}
+impl OptionFromXml for ReleaseGroupPrimaryType {
+    fn option_from_xml<'d, R>(reader: &'d R) -> Result<Option<Self>, XpathError>
+        where R: XpathReader<'d>
+    {
+        let s = String::from_xml(reader)?;
+        match s.as_str() {
+            "Album" => Ok(Some(ReleaseGroupPrimaryType::Album)),
+            "Single" => Ok(Some(ReleaseGroupPrimaryType::Single)),
+            "EP" => Ok(Some(ReleaseGroupPrimaryType::EP)),
+            "Broadcast" => Ok(Some(ReleaseGroupPrimaryType::Broadcast)),
+            "Other" => Ok(Some(ReleaseGroupPrimaryType::Other)),
+            "" => Ok(None),
+            s => Err(format!("Unknown ReleaseGroupPrimaryType: '{}'", s).into()),
         }
     }
 }
@@ -37,7 +38,7 @@ impl Display for ReleaseGroupPrimaryType {
             Single => "Single",
             EP => "EP",
             Broadcast => "Broadcast",
-            Other => "Other"
+            Other => "Other",
         };
         write!(f, "{}", s)
     }
@@ -57,10 +58,13 @@ pub enum ReleaseGroupSecondaryType {
     MixtapeStreet,
 }
 
-impl FromStr for ReleaseGroupSecondaryType {
-    type Err = ParseError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
+impl FromXmlElement for ReleaseGroupSecondaryType {}
+impl FromXml for ReleaseGroupSecondaryType {
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, XpathError>
+        where R: XpathReader<'d>
+    {
+        let s = String::from_xml(reader)?;
+        match s.as_str() {
             "Compilation" => Ok(ReleaseGroupSecondaryType::Compilation),
             "Soundtrack" => Ok(ReleaseGroupSecondaryType::Soundtrack),
             "Spokenword" => Ok(ReleaseGroupSecondaryType::Spokenword),
@@ -70,12 +74,7 @@ impl FromStr for ReleaseGroupSecondaryType {
             "Remix" => Ok(ReleaseGroupSecondaryType::Remix),
             "DJ-mix" => Ok(ReleaseGroupSecondaryType::DjMix),
             "Mixtape/Street" => Ok(ReleaseGroupSecondaryType::MixtapeStreet),
-            _ => {
-                Err(ParseErrorKind::InvalidData(format!("Unknown ReleaseSecondaryPrimaryType: '{}'",
-                                                       s)
-                                                       .to_string())
-                            .into())
-            }
+            s => Err(format!("Unknown ReleaseSecondaryPrimaryType: '{}'", s).into()),
         }
     }
 }
@@ -91,29 +90,13 @@ pub struct ReleaseGroupType {
 
 impl FromXmlElement for ReleaseGroupType {}
 impl FromXml for ReleaseGroupType {
-    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ParseError>
-        where R: XPathReader<'d>
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, XpathError>
+        where R: XpathReader<'d>
     {
-        use sxd_xpath::Value::Nodeset;
-
         Ok(ReleaseGroupType {
-               primary: match reader.read_nstring(".//mb:primary-type/text()")? {
-                   Some(s) => Some(s.parse()?),
-                   None => None,
-               },
-               secondary:
-                   match reader.evaluate(".//mb:secondary-type-list/mb:secondary-type/text()")? {
-                       Nodeset(nodeset) => {
-                let r: Result<Vec<ReleaseGroupSecondaryType>, ParseError> = nodeset.iter().map(|node| {
-                            node.text()
-                                .ok_or_else(|| ParseErrorKind::InvalidData("ReleaseGroupType read xml failure: invalid node structure.".to_string()).into())
-                                .and_then(|s| s.text().parse())
-                            }).collect();
-                r?
-            }
-                       _ => Vec::new(),
-                   },
-           })
+            primary: reader.read_option(".//mb:primary-type/text()")?,
+            secondary: reader.read_vec(".//mb:secondary-type-list/mb:secondary-type/text()")?,
+        })
     }
 }
 
@@ -156,22 +139,19 @@ impl Resource for ReleaseGroup {
 
 impl FromXmlContained for ReleaseGroup {}
 impl FromXml for ReleaseGroup {
-    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, ParseError>
-        where R: XPathReader<'d>
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, XpathError>
+        where R: XpathReader<'d>
     {
         Ok(ReleaseGroup {
-               mbid: reader.read_mbid(".//mb:release-group/@id")?,
-               title: reader.read_string(".//mb:release-group/mb:title/text()")?,
-               releases: reader.read_vec(".//mb:release-group/mb:release-list/mb:release")?,
-               artists:
-                   reader.read_vec(".//mb:release-group/mb:artist-credit/mb:name-credit/mb:artist")?,
-               release_type: {
-                   let rel_reader = reader.relative_reader(".//mb:release-group")?;
-                   ReleaseGroupType::from_xml(&rel_reader)?
-               },
-               disambiguation: reader.read_nstring(".//mb:release-group/mb:disambiguation/text()")?,
-               annotation: reader.read_nstring(".//mb:release-group/mb:annotation/text()")?,
-           })
+            mbid: reader.read(".//mb:release-group/@id")?,
+            title: reader.read(".//mb:release-group/mb:title/text()")?,
+            releases: reader.read_vec(".//mb:release-group/mb:release-list/mb:release")?,
+            artists:
+                reader.read_vec(".//mb:release-group/mb:artist-credit/mb:name-credit/mb:artist")?,
+            release_type: reader.read(".//mb:release-group")?,
+            disambiguation: reader.read_option(".//mb:release-group/mb:disambiguation/text()")?,
+            annotation: reader.read_option(".//mb:release-group/mb:annotation/text()")?,
+        })
     }
 }
 
@@ -183,7 +163,8 @@ mod tests {
     fn read_1() {
         // url: https://musicbrainz.org/ws/2/release-group/76a4e2c2-bf7a-445e-8081-5a1e291f3b16?inc=annotation+artists+releases
         let xml = r#"<?xml version="1.0" encoding="UTF-8"?><metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#"><release-group type="Album" id="76a4e2c2-bf7a-445e-8081-5a1e291f3b16" type-id="f529b476-6e62-324f-b0aa-1f3e33d313fc"><title>Mixtape</title><first-release-date>2012-03</first-release-date><primary-type id="f529b476-6e62-324f-b0aa-1f3e33d313fc">Album</primary-type><secondary-type-list><secondary-type id="15c1b1f5-d893-3375-a1db-e180c5ae15ed">Mixtape/Street</secondary-type></secondary-type-list><artist-credit><name-credit><artist id="0e6b3a2c-6a42-4b43-a4f6-c6625c5855de"><name>POP ETC</name><sort-name>POP ETC</sort-name></artist></name-credit></artist-credit><release-list count="1"><release id="289bf4e7-0af5-433c-b5a2-493b863b4b47"><title>Mixtape</title><status id="4e304316-386d-3409-af2e-78857eec5cfe">Official</status><quality>normal</quality><text-representation><language>eng</language><script>Latn</script></text-representation><date>2012-03</date><country>US</country><release-event-list count="1"><release-event><date>2012-03</date><area id="489ce91b-6658-3307-9877-795b68554c98"><name>United States</name><sort-name>United States</sort-name><iso-3166-1-code-list><iso-3166-1-code>US</iso-3166-1-code></iso-3166-1-code-list></area></release-event></release-event-list></release></release-list></release-group></metadata>"#;
-        let reader = XPathStrReader::new(xml).unwrap();
+        let context = default_musicbrainz_context();
+        let reader = XpathStrReader::new(xml, &context).unwrap();
         let rg = ReleaseGroup::from_xml(&reader).unwrap();
 
         assert_eq!(rg.mbid,

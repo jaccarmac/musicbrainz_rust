@@ -8,24 +8,21 @@
 extern crate error_chain;
 extern crate hyper;
 extern crate uuid;
-extern crate sxd_document;
-extern crate sxd_xpath;
+extern crate xpath_reader;
 
 pub mod errors {
-    pub type XmlParserErrors = (usize, ::std::vec::Vec<::sxd_document::parser::Error>);
-
     error_chain!{
         types {
             ParseError, ParseErrorKind, ChainParseErr;
         }
 
+        links {
+            XpathReadError(::xpath_reader::XpathError, ::xpath_reader::XpathErrorKind);
+        }
+
         // Automatic conversions between this error chain and errors not defined using error
         // chain.
         foreign_links {
-            XmlParserError(::sxd_document::parser::Error);
-            XpathError(::sxd_xpath::Error);
-            XpathExecutionError(::sxd_xpath::ExecutionError);
-            XpathParserError(::sxd_xpath::ParserError);
             UuidParseError(::uuid::ParseError);
             ParseIntError(::std::num::ParseIntError);
             ParseDateError(super::entities::ParseDateError);
@@ -43,12 +40,6 @@ pub mod errors {
                 description("internal error")
                 display("internal error: {}\nYou should probably report this bug.", msg)
             }
-        }
-    }
-
-    impl From<(usize, ::std::vec::Vec<::sxd_document::parser::Error>)> for ParseError {
-        fn from(err: (usize, ::std::vec::Vec<::sxd_document::parser::Error>)) -> ParseError {
-            ParseErrorKind::XmlParserError(err.1[0]).into()
         }
     }
 
@@ -70,7 +61,7 @@ pub mod errors {
 }
 pub use errors::*;
 
-pub mod client;
+//pub mod client;
 pub mod entities;
 
 #[cfg(test)]

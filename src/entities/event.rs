@@ -5,24 +5,24 @@ pub enum EventType {
     Festival,
     LaunchEvent,
     ConventionExpo,
-    MasterclassClinic
+    MasterclassClinic,
 }
 
-/* TODO
-impl FromStr for EventType {
-    type Err = ParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "Concert" => Ok(
-    }
-}
-*/
+// TODO
+// impl FromStr for EventType {
+// type Err = ParseError;
+//
+// fn from_str(s: &str) -> Result<Self, Self::Err> {
+// match s {
+// "Concert" => Ok(
+// }
+// }
+//
 
 pub struct Event {
     /// MBID of the entity in the MusicBrainz database.
     mbid: Mbid,
-    
+
     /// The official name of the event or a descriptive name if the event doesn't have an official
     /// name.
     name: String,
@@ -42,13 +42,12 @@ pub struct Event {
     begin_date: Date,
     end_date: Date,
 
-// TODO:    start_time: Time
-
+    // TODO:    start_time: Time
     aliases: Vec<String>,
 
     disambiguation: Option<String>,
 
-    annotation: Option<String>
+    annotation: Option<String>,
 }
 
-// TODO implement reader 
+// TODO implement reader

@@ -1,5 +1,5 @@
 // TODO: this should probably be moved to a different file/directory
-
+use super::*;
 use std;
 use std::str::FromStr;
 use std::num::ParseIntError;
@@ -107,15 +107,15 @@ impl FromStr for Date {
             Ok(Date::Year { year: ps[0].parse()? })
         } else if ps.len() == 2 {
             Ok(Date::Month {
-                   year: ps[0].parse()?,
-                   month: ps[1].parse()?,
-               })
+                year: ps[0].parse()?,
+                month: ps[1].parse()?,
+            })
         } else if ps.len() == 3 {
             Ok(Date::Day {
-                   year: ps[0].parse()?,
-                   month: ps[1].parse()?,
-                   day: ps[2].parse()?,
-               })
+                year: ps[0].parse()?,
+                month: ps[1].parse()?,
+                day: ps[2].parse()?,
+            })
         } else {
             Err(ParseDateError::WrongNumberOfComponents(ps.len()))
         }
@@ -128,6 +128,27 @@ impl Display for Date {
             Date::Year { year } => write!(f, "{:04}", year),
             Date::Month { year, month } => write!(f, "{:04}-{:02}", year, month),
             Date::Day { year, month, day } => write!(f, "{:04}-{:02}-{:02}", year, month, day),
+        }
+    }
+}
+
+impl FromXml for Date {
+    fn from_xml<'d, R>(reader: &'d R) -> Result<Self, XpathError>
+        where R: XpathReader<'d>
+    {
+        use xpath_reader::errors::ChainXpathErr;
+        Ok(String::from_xml(reader)?.parse().chain_err(|| "Failed parsing Date")?)
+    }
+}
+
+impl OptionFromXml for Date {
+    fn option_from_xml<'d, R>(reader: &'d R) -> Result<Option<Self>, XpathError>
+        where R: XpathReader<'d>
+    {
+        use xpath_reader::errors::ChainXpathErr;
+        match String::option_from_xml(reader)? {
+            Some(s) => Ok(Some(s.parse().chain_err(|| "Failed parsing Date")?)),
+            None => Ok(None),
         }
     }
 }
