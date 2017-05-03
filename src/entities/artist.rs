@@ -38,7 +38,6 @@ impl FromXml for ArtistType {
     fn from_xml<'d, R>(reader: &'d R) -> Result<Self, XpathError>
         where R: XpathReader<'d>
     {
-        use xpath_reader::errors::ChainXpathErr;
         let s = String::from_xml(reader)?;
         match &s[..] {
             "Person" => Ok(ArtistType::Person),

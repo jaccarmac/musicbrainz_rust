@@ -1,4 +1,4 @@
-///! For now only including the search fields of release group.
+/// ! For now only including the search fields of release group.
 
 use super::{full_entities, Mbid};
 

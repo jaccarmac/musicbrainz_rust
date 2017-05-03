@@ -34,7 +34,10 @@ mod mbid;
 pub use self::mbid::Mbid;
 
 
-fn default_musicbrainz_context<'d>() -> Context<'d> {
+// TODO this is mostly a convenience thing that will have to be removed completely at a later
+// point.
+/// Don't use this outside this crate.
+pub fn default_musicbrainz_context<'d>() -> Context<'d> {
     let mut context = Context::default();
     context.set_namespace("mb", "http://musicbrainz.org/ns/mmd-2.0#");
     context
@@ -50,7 +53,6 @@ pub trait Resource {
 }
 
 pub struct Instrument {}
-
 
 pub struct Series {}
 

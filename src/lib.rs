@@ -50,6 +50,7 @@ pub mod errors {
 
         links {
             ParseError(ParseError, ParseErrorKind);
+            XpathReadError(::xpath_reader::XpathError, ::xpath_reader::XpathErrorKind);
         }
 
         foreign_links {
@@ -61,7 +62,7 @@ pub mod errors {
 }
 pub use errors::*;
 
-//pub mod client;
+pub mod client;
 pub mod entities;
 
 #[cfg(test)]
