@@ -3,10 +3,13 @@ use super::entities::{Mbid, Resource};
 
 use hyper::Url;
 use hyper::header::UserAgent;
+use hyper::net::HttpsConnector;
+use hyper_native_tls::NativeTlsClient;
 use std::io::Read;
 use xpath_reader::reader::{XpathReader, XpathStrReader, FromXmlContained};
 
 pub mod search;
+use self::search::{SearchBuilder, ReleaseGroupSearchBuilder};
 
 /// Configuration for the client.
 pub struct ClientConfig {
@@ -30,11 +33,14 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(config: ClientConfig) -> Self {
-        Client {
+    pub fn new(config: ClientConfig) -> Result<Self, ClientError> {
+        let ssl = NativeTlsClient::new()?;
+        let connector = HttpsConnector::new(ssl);
+
+        Ok(Client {
             config: config,
-            http_client: hyper::Client::new(),
-        }
+            http_client: hyper::Client::with_connector(connector),
+        })
     }
 
     /// Fetch the specified ressource from the server and parse it.
@@ -45,7 +51,7 @@ impl Client {
         use hyper::header::UserAgent;
 
         let url = Res::get_url(mbid);
-        let response_body = self.get_body(&url.parse()?)?;
+        let response_body = self.get_body(url.parse()?)?;
 
         // Parse the response.
         let context = default_musicbrainz_context();
@@ -53,9 +59,9 @@ impl Client {
         Ok(Res::from_xml(&reader)?)
     }
 
-    fn get_body(&self, url: &Url) -> Result<String, ClientError> {
+    fn get_body(&self, url: Url) -> Result<String, ClientError> {
         let mut response = self.http_client
-            .get(&url[..])
+            .get(url)
             .header(UserAgent(self.config.user_agent.clone()))
             .send()?;
         let mut response_body = String::new();
@@ -63,9 +69,33 @@ impl Client {
         Ok(response_body)
     }
 
-/*
     pub fn search_release_group<'cl>(&'cl self) -> ReleaseGroupSearchBuilder<'cl> {
         ReleaseGroupSearchBuilder::new(self)
     }
-*/
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn get_client() -> Client {
+        let config = ClientConfig {
+            user_agent: "MusicBrainz-Rust/Testing".to_string()
+        };
+        Client::new(config).unwrap()
+    }
+
+    #[test]
+    fn search_release_group() {
+        let client = get_client();
+        let results = client.search_release_group()
+            .add(search::fields::ReleaseName("霊魂消滅".to_string()))
+            .search().unwrap();
+
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].score, 100);
+        assert_eq!(results[0].entity.mbid, "739de9cd-7e81-4bb0-9fdb-0feb7ea709c7".parse().unwrap());
+        assert_eq!(results[0].entity.title, "霊魂消滅".to_string());
+    }
+}
+
