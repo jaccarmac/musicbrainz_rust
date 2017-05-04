@@ -38,10 +38,10 @@ impl FromXml for ReleaseGroup {
         where R: XpathReader<'d>
     {
         Ok(ReleaseGroup {
-            mbid: reader.read(".//@id")?,
-            title: reader.read(".//mb:title")?,
-            artists: reader.read_vec(".//mb:artist-credit/mb:name-credit/mb:artist")?,
-            releases: reader.read_vec(".//mb:release-list/mb:release")?,
-        })
+               mbid: reader.read(".//@id")?,
+               title: reader.read(".//mb:title")?,
+               artists: reader.read_vec(".//mb:artist-credit/mb:name-credit/mb:artist")?,
+               releases: reader.read_vec(".//mb:release-list/mb:release")?,
+           })
     }
 }

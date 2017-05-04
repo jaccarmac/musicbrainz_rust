@@ -15,10 +15,10 @@ pub type SearchResult<Entity> = Result<Vec<SearchEntry<Entity>>, ClientError>;
 pub trait SearchBuilder {
     /// The entity from the client::search::entities module,
     /// this is the entity contained in the search result.
-    type Entity : entities::SearchEntity;
+    type Entity: entities::SearchEntity;
 
     /// The full entity a search entity can be expanded into.
-    type FullEntity : Resource + FromXml;
+    type FullEntity: Resource + FromXml;
 
     fn build_url(&self, base_url: &str) -> Result<Url, ClientError>;
     fn search(&self) -> SearchResult<Self::Entity>;
@@ -105,4 +105,3 @@ define_search_builder!(ReleaseGroupSearchBuilder,
                        entities::ReleaseGroup,
                        full_entities::ReleaseGroup,
                        "release-group-list");
-

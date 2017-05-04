@@ -39,9 +39,9 @@ impl Client {
         let connector = HttpsConnector::new(ssl);
 
         Ok(Client {
-            config: config,
-            http_client: hyper::Client::with_connector(connector),
-        })
+               config: config,
+               http_client: hyper::Client::with_connector(connector),
+           })
     }
 
     /// Fetch the specified ressource from the server and parse it.
@@ -60,10 +60,8 @@ impl Client {
     }
 
     fn get_body(&self, url: Url) -> Result<String, ClientError> {
-        let mut response = self.http_client
-            .get(url)
-            .header(UserAgent(self.config.user_agent.clone()))
-            .send()?;
+        let mut response =
+            self.http_client.get(url).header(UserAgent(self.config.user_agent.clone())).send()?;
         let mut response_body = String::new();
         response.read_to_string(&mut response_body)?;
         Ok(response_body)
@@ -79,23 +77,23 @@ mod tests {
     use super::*;
 
     fn get_client() -> Client {
-        let config = ClientConfig {
-            user_agent: "MusicBrainz-Rust/Testing".to_string()
-        };
+        let config = ClientConfig { user_agent: "MusicBrainz-Rust/Testing".to_string() };
         Client::new(config).unwrap()
     }
 
     #[test]
     fn search_release_group() {
         let client = get_client();
-        let results = client.search_release_group()
+        let results = client
+            .search_release_group()
             .add(search::fields::ReleaseName("霊魂消滅".to_string()))
-            .search().unwrap();
+            .search()
+            .unwrap();
 
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].score, 100);
-        assert_eq!(results[0].entity.mbid, "739de9cd-7e81-4bb0-9fdb-0feb7ea709c7".parse().unwrap());
+        assert_eq!(results[0].entity.mbid,
+                   "739de9cd-7e81-4bb0-9fdb-0feb7ea709c7".parse().unwrap());
         assert_eq!(results[0].entity.title, "霊魂消滅".to_string());
     }
 }
-
