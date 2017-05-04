@@ -1,13 +1,14 @@
 /// ! Search entities.
 /// ! Don't confuse these with the entities in the top level module `entities`.
-/// ! They are only contained in search results and provide a means to retrive the full entitity
+/// ! They are only contained in search results and provide a means to retrive
+/// the full entitity
 /// ! a further API request.
 
-use super::{full_entities, Client, ClientError, Mbid};
+use super::{Client, ClientError, Mbid, full_entities};
 use self::full_entities::refs::*;
 use self::full_entities::Resource;
 use xpath_reader::XpathError;
-use xpath_reader::reader::{XpathReader, FromXml, FromXmlElement};
+use xpath_reader::reader::{FromXml, FromXmlElement, XpathReader};
 
 pub trait SearchEntity {
     /// The full entity that is refered by this search entity.
@@ -27,7 +28,8 @@ pub struct ReleaseGroup {
 impl SearchEntity for ReleaseGroup {
     type FullEntity = full_entities::ReleaseGroup;
 
-    fn fetch_full(&self, client: &Client) -> Result<Self::FullEntity, ClientError> {
+    fn fetch_full(&self, client: &Client) -> Result<Self::FullEntity, ClientError>
+    {
         client.get_by_mbid(&self.mbid)
     }
 }

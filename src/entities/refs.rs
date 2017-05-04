@@ -1,11 +1,15 @@
-//! This module contains structs for types we call *reference types* in this library.
+//! This module contains structs for types we call *reference types* in this
+//! library.
 //!
-//! These types only contain some basic data but reference a full entity in the MusicBrainz
+//! These types only contain some basic data but reference a full entity in the
+//! MusicBrainz
 //! database which can be retrieved.
 
 // TODO: Better documentation in this file.
-// TODO: When writing the API interfacing code, provide some form of helpers so the full referenced
-//       types corresponding to these ref types can be easily retrieved from the server.
+// TODO: When writing the API interfacing code, provide some form of helpers so
+// the full referenced
+// types corresponding to these ref types can be easily retrieved from
+// the server.
 
 use super::*;
 
@@ -41,7 +45,8 @@ impl OptionFromXml for AreaRef {
     }
 }
 
-/// A small variation of `Artist` which is used only to refer to an actual artist entity from other
+/// A small variation of `Artist` which is used only to refer to an actual
+/// artist entity from other
 /// entities.
 /// TODO: new docstring
 #[derive(Clone, Debug, Eq, PartialEq)]

@@ -9,12 +9,17 @@ use std::fmt::Display;
 /// The `Date` type used by the `musicbrainz` crate.
 /// It allows the representation of partial dates.
 // TODO: Write conversions to and from `chrono` date types for interoperability.
-// TODO: Consider checking the field values for validity (i.e. month and day within appropriate
-// ranges). To make sure only valid instances are created we might actually need to do something
-// like it is described here: http://stackoverflow.com/a/28090996 because in general Rust enum
+// TODO: Consider checking the field values for validity (i.e. month and day
+// within appropriate
+// ranges). To make sure only valid instances are created we might actually
+// need to do something
+// like it is described here: http://stackoverflow.com/a/28090996 because in
+// general Rust enum
 // constructors cannot be made private.
-// (And for the users of the `Date` type it actually shouldn't even matter that much if they can
-// pattern match on it or not, it's just more about properly representing the data returned from
+// (And for the users of the `Date` type it actually shouldn't even matter that
+// much if they can
+// pattern match on it or not, it's just more about properly representing the
+// data returned from
 // the MusicBrainz API.)
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Date {
@@ -29,7 +34,8 @@ pub enum Date {
 
 impl Date {
     /// Return the year from the date.
-    pub fn year(&self) -> u16 {
+    pub fn year(&self) -> u16
+    {
         match *self {
             Date::Year { year } => year,
             Date::Month { year, .. } => year,
@@ -39,7 +45,8 @@ impl Date {
 
     /// Return the month from the date.
     /// If it is not present, 0 will be returned.
-    pub fn month(&self) -> u8 {
+    pub fn month(&self) -> u8
+    {
         match *self {
             Date::Year { .. } => 0,
             Date::Month { month, .. } => month,
@@ -49,7 +56,8 @@ impl Date {
 
     /// Return the day from the date.
     /// If it is not present, 0 will be returned.
-    pub fn day(&self) -> u8 {
+    pub fn day(&self) -> u8
+    {
         match *self {
             Date::Year { .. } => 0,
             Date::Month { .. } => 0,
@@ -68,7 +76,8 @@ pub enum ParseDateError {
 }
 
 impl Error for ParseDateError {
-    fn description(&self) -> &str {
+    fn description(&self) -> &str
+    {
         use self::ParseDateError::*;
         match *self {
             WrongNumberOfComponents(_) => "wrong number of components",
@@ -78,7 +87,8 @@ impl Error for ParseDateError {
 }
 
 impl Display for ParseDateError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error>
+    {
         use self::ParseDateError::*;
         match *self {
             WrongNumberOfComponents(n) => {
@@ -90,7 +100,8 @@ impl Display for ParseDateError {
 }
 
 impl From<ParseIntError> for ParseDateError {
-    fn from(e: ParseIntError) -> Self {
+    fn from(e: ParseIntError) -> Self
+    {
         ParseDateError::ComponentInvalid(e)
     }
 }
@@ -98,7 +109,8 @@ impl From<ParseIntError> for ParseDateError {
 impl FromStr for Date {
     type Err = ParseDateError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<Self, Self::Err>
+    {
         // Get the pieces of the date.
         let ps: Vec<&str> = s.split("-").collect();
 
@@ -123,7 +135,8 @@ impl FromStr for Date {
 }
 
 impl Display for Date {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error>
+    {
         match *self {
             Date::Year { year } => write!(f, "{:04}", year),
             Date::Month { year, month } => write!(f, "{:04}-{:02}", year, month),
@@ -169,7 +182,8 @@ mod tests {
     };
 
     #[test]
-    fn parse_valid() {
+    fn parse_valid()
+    {
         let date1 = Date::from_str("2017").unwrap();
         let date2 = Date::from_str("2017-4").unwrap();
         let date3 = Date::from_str("2017-04-15").unwrap();
@@ -180,7 +194,8 @@ mod tests {
     }
 
     #[test]
-    fn accessors() {
+    fn accessors()
+    {
         assert_eq!(DATE_1.year(), 2017);
         assert_eq!(DATE_1.month(), 0);
         assert_eq!(DATE_1.day(), 0);
@@ -193,14 +208,16 @@ mod tests {
     }
 
     #[test]
-    fn wrong_number_comps() {
+    fn wrong_number_comps()
+    {
         let fail = Date::from_str("1-1-1-1");
         assert_eq!(fail.err().unwrap(),
                    ParseDateError::WrongNumberOfComponents(4));
     }
 
     #[test]
-    fn invalid_components() {
+    fn invalid_components()
+    {
         let fail1 = Date::from_str("abc");
         let fail2 = Date::from_str("2017-abc");
         let fail3 = Date::from_str("2017-04-abc");
@@ -213,7 +230,8 @@ mod tests {
     }
 
     #[test]
-    fn to_string() {
+    fn to_string()
+    {
         assert_eq!(DATE_1.to_string(), "2017".to_string());
         assert_eq!(DATE_2.to_string(), "2017-04".to_string());
         assert_eq!(DATE_3.to_string(), "2017-04-15".to_string());

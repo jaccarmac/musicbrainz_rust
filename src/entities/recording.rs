@@ -1,6 +1,7 @@
 use super::*;
 
-/// Represents a unique audio that has been used to produce at least one released track through
+/// Represents a unique audio that has been used to produce at least one
+/// released track through
 /// copying or mastering.
 #[derive(Clone, Debug)]
 pub struct Recording {
@@ -13,7 +14,8 @@ pub struct Recording {
     /// The artists that the recording is primarily credited to.
     pub artists: Vec<ArtistRef>,
 
-    /// Approximation of the length of the recording, calculated from the tracks using it.
+    /// Approximation of the length of the recording, calculated from the
+    /// tracks using it.
     pub duration: Duration,
 
     /// ISRC (International Standard Recording Code) assigned to the recording.
@@ -44,12 +46,14 @@ impl FromXml for Recording {
 }
 
 impl Resource for Recording {
-    fn get_url(mbid: &Mbid) -> String {
+    fn get_url(mbid: &Mbid) -> String
+    {
         format!("https://musicbrainz.org/ws/2/recording/{}?inc=artists+annotation+isrcs",
                 mbid)
     }
 
-    fn base_url() -> &'static str {
+    fn base_url() -> &'static str
+    {
         "https://musicbrainz.org/ws/2/recording/"
     }
 }
@@ -59,7 +63,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn read_xml1() {
+    fn read_xml1()
+    {
         // url: https://musicbrainz.org/ws/2/recording/fbe3d0b9-3990-4a76-bddb-12f4a0447a2c?inc=artists+annotation+isrcs
         let xml = r#"<?xml version="1.0" encoding="UTF-8"?><metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#"><recording id="fbe3d0b9-3990-4a76-bddb-12f4a0447a2c"><title>The Perfect Drug (Nine Inch Nails)</title><length>499000</length><artist-credit><name-credit><artist id="b7ffd2af-418f-4be2-bdd1-22f8b48613da"><name>Nine Inch Nails</name><sort-name>Nine Inch Nails</sort-name></artist></name-credit></artist-credit><isrc-list count="1"><isrc id="USIR19701296" /></isrc-list></recording></metadata>"#;
         let context = default_musicbrainz_context();
@@ -72,11 +77,13 @@ mod tests {
                    "The Perfect Drug (Nine Inch Nails)".to_string());
         assert_eq!(recording.duration, Duration::from_millis(499000));
         assert_eq!(recording.artists,
-                   vec![ArtistRef {
-                            mbid: Mbid::from_str("b7ffd2af-418f-4be2-bdd1-22f8b48613da").unwrap(),
-                            name: "Nine Inch Nails".to_string(),
-                            sort_name: "Nine Inch Nails".to_string(),
-                        }]);
+                   vec![
+            ArtistRef {
+                mbid: Mbid::from_str("b7ffd2af-418f-4be2-bdd1-22f8b48613da").unwrap(),
+                name: "Nine Inch Nails".to_string(),
+                sort_name: "Nine Inch Nails".to_string(),
+            },
+        ]);
         assert_eq!(recording.isrc_code, Some("USIR19701296".to_string()));
         assert_eq!(recording.annotation, None);
         assert_eq!(recording.disambiguation, None);

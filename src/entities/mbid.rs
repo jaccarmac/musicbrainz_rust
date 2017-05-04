@@ -10,13 +10,15 @@ pub struct Mbid {
 }
 
 impl From<Uuid> for Mbid {
-    fn from(uuid: Uuid) -> Self {
+    fn from(uuid: Uuid) -> Self
+    {
         Mbid { uuid: uuid }
     }
 }
 
 impl From<Mbid> for Uuid {
-    fn from(mbid: Mbid) -> Self {
+    fn from(mbid: Mbid) -> Self
+    {
         mbid.uuid
     }
 }
@@ -24,19 +26,22 @@ impl From<Mbid> for Uuid {
 impl FromStr for Mbid {
     type Err = uuid::ParseError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<Self, Self::Err>
+    {
         Ok(Mbid { uuid: Uuid::parse_str(s)? })
     }
 }
 
 impl Debug for Mbid {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result
+    {
         write!(f, "Mbid: {:?}", self.uuid)
     }
 }
 
 impl Display for Mbid {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result
+    {
         write!(f, "{}", self.uuid.hyphenated())
     }
 }

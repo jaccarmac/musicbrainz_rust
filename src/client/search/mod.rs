@@ -31,7 +31,8 @@ pub struct SearchEntry<E>
     /// The returned entity.
     pub entity: E,
 
-    /// A value from 0 to 100 indicating in percent how much this specific search result matches
+    /// A value from 0 to 100 indicating in percent how much this specific
+    /// search result matches
     /// the search query.
     pub score: u8,
 }

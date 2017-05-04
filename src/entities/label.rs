@@ -1,9 +1,11 @@
 use super::*;
 
 /// A label entity in the MusicBrainz database.
-/// There is quite some controversy in the music industry what a 'label' constitutes.
+/// There is quite some controversy in the music industry what a 'label'
+/// constitutes.
 ///
-/// For a complete disambiguation see the `LabelType` enum. The labels in MusicBrainz are mostly
+/// For a complete disambiguation see the `LabelType` enum. The labels in
+/// MusicBrainz are mostly
 /// imprints.
 pub struct Label {
     /// MBID of the entity in the MusicBrainz database.
@@ -15,12 +17,14 @@ pub struct Label {
     /// Version of the `name` converted to latin characters for sorting.
     pub sort_name: String,
 
-    /// If there are multiple labels with the same name in the database, a short disambiguation
+    /// If there are multiple labels with the same name in the database, a
+    /// short disambiguation
     /// comment is provided which allows to differentiate the entities.
     pub disambiguation: Option<String>,
 
     /// Variants of the name mainly used as search help.
-    /// These can be variants, spellings of names, missing titles and common misspellings.
+    /// These can be variants, spellings of names, missing titles and common
+    /// misspellings.
     pub aliases: Vec<String>,
 
     /// LC code of the label, as issued by the IFPI.
@@ -39,20 +43,24 @@ pub struct Label {
     pub isni_code: Option<String>,
 
     /// The date when this label was founded.
-    /// (Consult the MusicBrainz manual for disclaimers about the significance of these
+    /// (Consult the MusicBrainz manual for disclaimers about the significance
+    /// of these
     /// informations.)
     pub begin_date: Option<Date>,
 
-    /// The date when this label ceased to exist or its last release ever was released.
+    /// The date when this label ceased to exist or its last release ever was
+    /// released.
     pub end_date: Option<Date>,
 }
 
 impl Resource for Label {
-    fn get_url(mbid: &Mbid) -> String {
+    fn get_url(mbid: &Mbid) -> String
+    {
         format!("https://musicbrainz.org/ws/2/label/{}?inc=aliases", mbid)
     }
 
-    fn base_url() -> &'static str {
+    fn base_url() -> &'static str
+    {
         "https://musicbrainz.org/ws/2/label/"
     }
 }
@@ -81,21 +89,25 @@ impl FromXml for Label {
 #[derive(Debug, Eq, PartialEq)]
 pub enum LabelType {
     /// The main `LabelType` in the MusicBrainz database.
-    /// That is a brand (and trademark) associated with the marketing of a release.
+    /// That is a brand (and trademark) associated with the marketing of a
+    /// release.
     Imprint,
 
     /// Production company producing entirely new releases.
     ProductionOriginal,
-    /// Known bootleg production companies, not sanctioned by the rights owners of the released
+    /// Known bootleg production companies, not sanctioned by the rights owners
+    /// of the released
     /// work.
     ProductionBootleg,
     /// Companies specialized in catalog reissues.
     ProductionReissue,
 
-    /// Companies mainly distributing other labels production, often in a specfic region of the
+    /// Companies mainly distributing other labels production, often in a
+    /// specfic region of the
     /// world.
     Distribution,
-    /// Holdings, conglomerates or other financial entities that don't mainly produce records but
+    /// Holdings, conglomerates or other financial entities that don't mainly
+    /// produce records but
     /// manage a large set of recording labels owned by them.
     Holding,
     /// An organization which collects royalties on behalf of the artists.
@@ -126,7 +138,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn label_read_xml1() {
+    fn label_read_xml1()
+    {
         let xml = r#"<?xml version="1.0" encoding="UTF-8"?><metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#"><label id="c029628b-6633-439e-bcee-ed02e8a338f7" type="Original Production" type-id="7aaa37fe-2def-3476-b359-80245850062d"><name>EMI</name><sort-name>EMI</sort-name><disambiguation>EMI Records, since 1972</disambiguation><label-code>542</label-code><country>GB</country><area id="8a754a16-0027-3a29-b6d7-2b40ea0481ed"><name>United Kingdom</name><sort-name>United Kingdom</sort-name><iso-3166-1-code-list><iso-3166-1-code>GB</iso-3166-1-code></iso-3166-1-code-list></area><life-span><begin>1972</begin></life-span></label></metadata>"#;
         let context = default_musicbrainz_context();
         let reader = XpathStrReader::new(xml, &context).unwrap();
@@ -149,15 +162,19 @@ mod tests {
     }
 
     #[test]
-    fn read_aliases() {
-        // url: https://musicbrainz.org/ws/2/label/168f48c8-057e-4974-9600-aa9956d21e1a?inc=aliases
+    fn read_aliases()
+    {
+        // url: https://musicbrainz.
+        // org/ws/2/label/168f48c8-057e-4974-9600-aa9956d21e1a?inc=aliases
         let xml = r#"<?xml version="1.0" encoding="UTF-8"?><metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#"><label type-id="7aaa37fe-2def-3476-b359-80245850062d" id="168f48c8-057e-4974-9600-aa9956d21e1a" type="Original Production"><name>avex trax</name><sort-name>avex trax</sort-name><country>JP</country><area id="2db42837-c832-3c27-b4a3-08198f75693c"><name>Japan</name><sort-name>Japan</sort-name><iso-3166-1-code-list><iso-3166-1-code>JP</iso-3166-1-code></iso-3166-1-code-list></area><life-span><begin>1990-09</begin></life-span><alias-list count="2"><alias sort-name="Avex Trax Japan">Avex Trax Japan</alias><alias sort-name="エイベックス・トラックス">エイベックス・トラックス</alias></alias-list></label></metadata>"#;
         let context = default_musicbrainz_context();
         let reader = XpathStrReader::new(xml, &context).unwrap();
         let label = Label::from_xml(&reader).unwrap();
 
-        let mut expected = vec!["Avex Trax Japan".to_string(),
-                                "エイベックス・トラックス".to_string()];
+        let mut expected = vec![
+            "Avex Trax Japan".to_string(),
+            "エイベックス・トラックス".to_string(),
+        ];
         expected.sort();
         let mut actual = label.aliases.clone();
         actual.sort();

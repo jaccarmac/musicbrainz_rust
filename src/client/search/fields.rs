@@ -1,6 +1,6 @@
 /// ! For now only including the search fields of release group.
 
-use super::{full_entities, Mbid};
+use super::{Mbid, full_entities};
 
 pub trait SearchField {
     type Value: ToString;
@@ -8,9 +8,11 @@ pub trait SearchField {
     fn to_string(&self) -> String;
 }
 
-// TODO: Wrap fields for each entity into a submodule so there are no clashes and users can quickly
+// TODO: Wrap fields for each entity into a submodule so there are no clashes
+// and users can quickly
 // lookup relevant fields using autocomplete.
-// In my attempts so far Iwasn't able to achieve that due to module scoping issues.
+// In my attempts so far Iwasn't able to achieve that due to module scoping
+// issues.
 macro_rules! define_fields {
     (
         $field_trait:ident, $modname:ident;

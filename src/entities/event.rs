@@ -30,7 +30,8 @@ pub struct Event {
     /// MBID of the entity in the MusicBrainz database.
     mbid: Mbid,
 
-    /// The official name of the event or a descriptive name if the event doesn't have an official
+    /// The official name of the event or a descriptive name if the event
+    /// doesn't have an official
     /// name.
     name: String,
 
@@ -42,7 +43,8 @@ pub struct Event {
 
     /// List of songs played at the event.
     ///
-    /// This is provided in an extensive text format, for which parsing is not yet implemented.
+    /// This is provided in an extensive text format, for which parsing is not
+    /// yet implemented.
     setlist: Option<String>,
 
     /// Begin date of the event.
@@ -52,7 +54,8 @@ pub struct Event {
     end_date: Date,
 
     // TODO:    start_time: Time
-    /// Disambiguation to distinguish Event from other Events with the same name (if existent).
+    /// Disambiguation to distinguish Event from other Events with the same
+    /// name (if existent).
     disambiguation: Option<String>,
 
     /// Additional, unstructured information about the event.
@@ -60,12 +63,14 @@ pub struct Event {
 }
 
 impl Resource for Event {
-    fn get_url(mbid: &Mbid) -> String {
+    fn get_url(mbid: &Mbid) -> String
+    {
         format!("https://musicbrainz.org/ws/2/event/{}?inc=aliases+annotation",
                 mbid)
     }
 
-    fn base_url() -> &'static str {
+    fn base_url() -> &'static str
+    {
         "https://musicbrainz.org/ws/2/event/"
     }
 }
@@ -94,8 +99,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn read_1() {
-        // url: https://musicbrainz.org/ws/2/event/6e2ab7d5-f340-4c41-99a3-c901733402b4?inc=annotation+aliases
+    fn read_1()
+    {
+        // url: https://musicbrainz.
+        // org/ws/2/event/6e2ab7d5-f340-4c41-99a3-c901733402b4?inc=annotation+aliases
         let xml = r#"<?xml version="1.0" encoding="UTF-8"?><metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#"><event type="Festival" id="6e2ab7d5-f340-4c41-99a3-c901733402b4" type-id="b6ded574-b592-3f0e-b56e-5b5f06aa0678"><name>25. Wave-Gotik-Treffen</name><life-span><begin>2016-05-13</begin><end>2016-05-16</end></life-span><annotation><text>ANNOTATION</text></annotation><alias-list count="1"><alias sort-name="WGT 2016">WGT 2016</alias></alias-list></event></metadata>"#;
         let context = default_musicbrainz_context();
         let reader = XpathStrReader::new(xml, &context).unwrap();
@@ -115,7 +122,8 @@ mod tests {
     }
 
     #[test]
-    fn read_2() {
+    fn read_2()
+    {
         // url: https://musicbrainz.org/ws/2/event/9754f4dd-6fad-49b7-8f30-940c9af6b776
         let xml = r#"<?xml version="1.0" encoding="UTF-8"?><metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#"><event type="Concert" id="9754f4dd-6fad-49b7-8f30-940c9af6b776" type-id="ef55e8d7-3d00-394a-8012-f5506a29ff0b"><name>Lady Gaga at Roseland Ballroom</name><life-span><begin>2014-03-28</begin><end>2014-03-28</end></life-span><setlist>* &quot;Born This Way&quot; (Piano Version)
 * &quot;Black Jesus + Amen Fashion&quot;

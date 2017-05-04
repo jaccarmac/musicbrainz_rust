@@ -1,3 +1,7 @@
-max_width = 100
+# reorder_imports = true
+array_layout = "Block"
 chain_one_line_max = 95
-
+fn_brace_style = "AlwaysNextLine"
+max_width = 100
+reorder_imported_names = true
+wrap_comments = true

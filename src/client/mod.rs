@@ -1,4 +1,4 @@
-use super::{hyper, ClientError};
+use super::{ClientError, hyper};
 use super::entities::{Mbid, Resource};
 
 use hyper::Url;
@@ -6,7 +6,7 @@ use hyper::header::UserAgent;
 use hyper::net::HttpsConnector;
 use hyper_native_tls::NativeTlsClient;
 use std::io::Read;
-use xpath_reader::reader::{XpathStrReader, FromXmlContained};
+use xpath_reader::reader::{FromXmlContained, XpathStrReader};
 
 pub mod search;
 use self::search::ReleaseGroupSearchBuilder;
@@ -16,14 +16,17 @@ pub use self::search::SearchBuilder;
 pub struct ClientConfig {
     /// The user-agent to be sent with every request to the API.
     ///
-    /// Provide a meaningful one as it will be used by MusicBrainz to identify your application and
-    /// without a user agent sever throttling will be undertaken. The official suggestion is to use
+    /// Provide a meaningful one as it will be used by MusicBrainz to identify
+    /// your application and
+    /// without a user agent sever throttling will be undertaken. The official
+    /// suggestion is to use
     /// either one of the following two options:
     ///
     /// * `Application name/<version> ( contact-url )`
     /// * `Application name/<version> ( contact-email )`
     ///
-    /// For more information see: https://musicbrainz.org/doc/XML_Web_Service/Rate_Limiting
+    /// For more information see:
+    /// https://musicbrainz.org/doc/XML_Web_Service/Rate_Limiting
     pub user_agent: String,
 }
 
@@ -34,7 +37,8 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(config: ClientConfig) -> Result<Self, ClientError> {
+    pub fn new(config: ClientConfig) -> Result<Self, ClientError>
+    {
         let ssl = NativeTlsClient::new()?;
         let connector = HttpsConnector::new(ssl);
 
@@ -59,7 +63,8 @@ impl Client {
         Ok(Res::from_xml(&reader)?)
     }
 
-    fn get_body(&self, url: Url) -> Result<String, ClientError> {
+    fn get_body(&self, url: Url) -> Result<String, ClientError>
+    {
         let mut response =
             self.http_client.get(url).header(UserAgent(self.config.user_agent.clone())).send()?;
         let mut response_body = String::new();
@@ -67,7 +72,8 @@ impl Client {
         Ok(response_body)
     }
 
-    pub fn search_release_group<'cl>(&'cl self) -> ReleaseGroupSearchBuilder<'cl> {
+    pub fn search_release_group<'cl>(&'cl self) -> ReleaseGroupSearchBuilder<'cl>
+    {
         ReleaseGroupSearchBuilder::new(self)
     }
 }
@@ -76,13 +82,15 @@ impl Client {
 mod tests {
     use super::*;
 
-    fn get_client() -> Client {
+    fn get_client() -> Client
+    {
         let config = ClientConfig { user_agent: "MusicBrainz-Rust/Testing".to_string() };
         Client::new(config).unwrap()
     }
 
     #[test]
-    fn search_release_group() {
+    fn search_release_group()
+    {
         let client = get_client();
         let results = client
             .search_release_group()

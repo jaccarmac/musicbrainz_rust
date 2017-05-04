@@ -12,7 +12,7 @@ pub enum ReleaseGroupPrimaryType {
 }
 
 // TODO: Fix this in `xpath_reader`.
-//impl FromXmlElement for ReleaseGroupPrimaryType {}
+// impl FromXmlElement for ReleaseGroupPrimaryType {}
 impl OptionFromXml for ReleaseGroupPrimaryType {
     fn option_from_xml<'d, R>(reader: &'d R) -> Result<Option<Self>, XpathError>
         where R: XpathReader<'d>
@@ -31,7 +31,8 @@ impl OptionFromXml for ReleaseGroupPrimaryType {
 }
 
 impl Display for ReleaseGroupPrimaryType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
+    {
         use self::ReleaseGroupPrimaryType::*;
         let s = match *self {
             Album => "Album",
@@ -44,7 +45,8 @@ impl Display for ReleaseGroupPrimaryType {
     }
 }
 
-/// Secondary types of a release group. There can be any number of secondary types.
+/// Secondary types of a release group. There can be any number of secondary
+/// types.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ReleaseGroupSecondaryType {
     Compilation,
@@ -101,13 +103,15 @@ impl FromXml for ReleaseGroupType {
 }
 
 /// Groups multiple `Release`s into one a single logical entity.
-/// Even if there is only one release of a kind, it belongs to exactly one release group.
+/// Even if there is only one release of a kind, it belongs to exactly one
+/// release group.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ReleaseGroup {
     /// MBID of the entity in the MusicBrainz database.
     pub mbid: Mbid,
 
-    /// Title of the release group, usually the same as the title of the releases.
+    /// Title of the release group, usually the same as the title of the
+    /// releases.
     pub title: String,
 
     /// The artists of a release group.
@@ -127,12 +131,14 @@ pub struct ReleaseGroup {
 }
 
 impl Resource for ReleaseGroup {
-    fn get_url(mbid: &Mbid) -> String {
+    fn get_url(mbid: &Mbid) -> String
+    {
         format!("https://musicbrainz.org/ws/2/release-group/{}?inc=annotation+artists+releases",
                 mbid)
     }
 
-    fn base_url() -> &'static str {
+    fn base_url() -> &'static str
+    {
         "https://musicbrainz.org/ws/2/release-group/"
     }
 }
@@ -160,7 +166,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn read_1() {
+    fn read_1()
+    {
         // url: https://musicbrainz.org/ws/2/release-group/76a4e2c2-bf7a-445e-8081-5a1e291f3b16?inc=annotation+artists+releases
         let xml = r#"<?xml version="1.0" encoding="UTF-8"?><metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#"><release-group type="Album" id="76a4e2c2-bf7a-445e-8081-5a1e291f3b16" type-id="f529b476-6e62-324f-b0aa-1f3e33d313fc"><title>Mixtape</title><first-release-date>2012-03</first-release-date><primary-type id="f529b476-6e62-324f-b0aa-1f3e33d313fc">Album</primary-type><secondary-type-list><secondary-type id="15c1b1f5-d893-3375-a1db-e180c5ae15ed">Mixtape/Street</secondary-type></secondary-type-list><artist-credit><name-credit><artist id="0e6b3a2c-6a42-4b43-a4f6-c6625c5855de"><name>POP ETC</name><sort-name>POP ETC</sort-name></artist></name-credit></artist-credit><release-list count="1"><release id="289bf4e7-0af5-433c-b5a2-493b863b4b47"><title>Mixtape</title><status id="4e304316-386d-3409-af2e-78857eec5cfe">Official</status><quality>normal</quality><text-representation><language>eng</language><script>Latn</script></text-representation><date>2012-03</date><country>US</country><release-event-list count="1"><release-event><date>2012-03</date><area id="489ce91b-6658-3307-9877-795b68554c98"><name>United States</name><sort-name>United States</sort-name><iso-3166-1-code-list><iso-3166-1-code>US</iso-3166-1-code></iso-3166-1-code-list></area></release-event></release-event-list></release></release-list></release-group></metadata>"#;
         let context = default_musicbrainz_context();
@@ -171,22 +178,26 @@ mod tests {
                    Mbid::from_str("76a4e2c2-bf7a-445e-8081-5a1e291f3b16").unwrap());
         assert_eq!(rg.title, "Mixtape".to_string());
         assert_eq!(rg.artists,
-                   vec![ArtistRef {
-                            mbid: Mbid::from_str("0e6b3a2c-6a42-4b43-a4f6-c6625c5855de").unwrap(),
-                            name: "POP ETC".to_string(),
-                            sort_name: "POP ETC".to_string(),
-                        }]);
+                   vec![
+            ArtistRef {
+                mbid: Mbid::from_str("0e6b3a2c-6a42-4b43-a4f6-c6625c5855de").unwrap(),
+                name: "POP ETC".to_string(),
+                sort_name: "POP ETC".to_string(),
+            },
+        ]);
         assert_eq!(rg.releases,
-                   vec![ReleaseRef {
-                            mbid: Mbid::from_str("289bf4e7-0af5-433c-b5a2-493b863b4b47").unwrap(),
-                            title: "Mixtape".to_string(),
-                            date: Date::Month {
-                                year: 2012,
-                                month: 03,
-                            },
-                            status: ReleaseStatus::Official,
-                            country: "US".to_string(),
-                        }]);
+                   vec![
+            ReleaseRef {
+                mbid: Mbid::from_str("289bf4e7-0af5-433c-b5a2-493b863b4b47").unwrap(),
+                title: "Mixtape".to_string(),
+                date: Date::Month {
+                    year: 2012,
+                    month: 03,
+                },
+                status: ReleaseStatus::Official,
+                country: "US".to_string(),
+            },
+        ]);
         assert_eq!(rg.release_type.primary,
                    Some(ReleaseGroupPrimaryType::Album));
         assert_eq!(rg.release_type.secondary,
