@@ -8,7 +8,6 @@
 extern crate error_chain;
 extern crate hyper;
 extern crate hyper_native_tls;
-extern crate native_tls;
 extern crate uuid;
 extern crate xpath_reader;
 
@@ -58,7 +57,7 @@ pub mod errors {
         foreign_links {
             HttpError(::hyper::error::Error);
             HyperParserError(::hyper::error::ParseError);
-            HyperTlsError(::native_tls::Error);
+            HyperTlsError(::hyper_native_tls::native_tls::Error);
             IoError(::std::io::Error);
         }
     }
