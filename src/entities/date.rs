@@ -107,15 +107,15 @@ impl FromStr for Date {
             Ok(Date::Year { year: ps[0].parse()? })
         } else if ps.len() == 2 {
             Ok(Date::Month {
-                year: ps[0].parse()?,
-                month: ps[1].parse()?,
-            })
+                   year: ps[0].parse()?,
+                   month: ps[1].parse()?,
+               })
         } else if ps.len() == 3 {
             Ok(Date::Day {
-                year: ps[0].parse()?,
-                month: ps[1].parse()?,
-                day: ps[2].parse()?,
-            })
+                   year: ps[0].parse()?,
+                   month: ps[1].parse()?,
+                   day: ps[2].parse()?,
+               })
         } else {
             Err(ParseDateError::WrongNumberOfComponents(ps.len()))
         }

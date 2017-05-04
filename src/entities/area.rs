@@ -74,13 +74,14 @@ impl FromXml for Area {
         where R: XpathReader<'d>
     {
         Ok(Area {
-            mbid: reader.read(".//mb:area/@id")?,
-            name: reader.read(".//mb:area/mb:name/text()")?,
-            sort_name: reader.read(".//mb:area/mb:sort-name/text()")?,
-            area_type: reader.read(".//mb:area/@type")?,
-            iso_3166:
-                reader.read_option(".//mb:area/mb:iso-3166-1-code-list/mb:iso-3166-1-code/text()")?,
-        })
+               mbid: reader.read(".//mb:area/@id")?,
+               name: reader.read(".//mb:area/mb:name/text()")?,
+               sort_name: reader.read(".//mb:area/mb:sort-name/text()")?,
+               area_type: reader.read(".//mb:area/@type")?,
+               iso_3166:
+                   reader
+                       .read_option(".//mb:area/mb:iso-3166-1-code-list/mb:iso-3166-1-code/text()")?,
+           })
     }
 }
 

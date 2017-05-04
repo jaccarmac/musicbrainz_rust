@@ -3,10 +3,9 @@ use super::super::entities as full_entities;
 use hyper::Url;
 
 use xpath_reader::{FromXml, XpathError, XpathReader};
-use xpath_reader::reader::FromXmlContained;
 
 pub mod fields;
-use self::fields::{SearchField, ReleaseGroupSearchField};
+use self::fields::ReleaseGroupSearchField;
 
 pub mod entities;
 use self::entities::SearchEntity;

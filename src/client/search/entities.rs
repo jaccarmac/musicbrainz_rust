@@ -7,7 +7,7 @@ use super::{full_entities, Client, ClientError, Mbid};
 use self::full_entities::refs::*;
 use self::full_entities::Resource;
 use xpath_reader::XpathError;
-use xpath_reader::reader::{XpathReader, FromXml, FromXmlContained, FromXmlElement};
+use xpath_reader::reader::{XpathReader, FromXml, FromXmlElement};
 
 pub trait SearchEntity {
     /// The full entity that is refered by this search entity.

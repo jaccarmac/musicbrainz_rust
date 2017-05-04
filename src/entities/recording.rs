@@ -31,15 +31,15 @@ impl FromXml for Recording {
         where R: XpathReader<'d>
     {
         Ok(Recording {
-            mbid: reader.read(".//mb:recording/@id")?,
-            title: reader.read(".//mb:recording/mb:title/text()")?,
-            artists: reader.read_vec(".//mb:recording/mb:artist-credit/mb:name-credit")?,
-            duration:
-                Duration::from_millis(reader.read::<u64>(".//mb:recording/mb:length/text()")?),
-            isrc_code: reader.read_option(".//mb:recording/mb:isrc-list/mb:isrc/@id")?,
-            disambiguation: reader.read_option(".//mb:recording/mb:disambiguation/text()")?,
-            annotation: reader.read_option(".//mb:recording/mb:annotation/text()")?,
-        })
+               mbid: reader.read(".//mb:recording/@id")?,
+               title: reader.read(".//mb:recording/mb:title/text()")?,
+               artists: reader.read_vec(".//mb:recording/mb:artist-credit/mb:name-credit")?,
+               duration:
+                   Duration::from_millis(reader.read::<u64>(".//mb:recording/mb:length/text()")?),
+               isrc_code: reader.read_option(".//mb:recording/mb:isrc-list/mb:isrc/@id")?,
+               disambiguation: reader.read_option(".//mb:recording/mb:disambiguation/text()")?,
+               annotation: reader.read_option(".//mb:recording/mb:annotation/text()")?,
+           })
     }
 }
 

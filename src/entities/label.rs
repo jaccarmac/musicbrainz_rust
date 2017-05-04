@@ -62,19 +62,19 @@ impl FromXml for Label {
         where R: XpathReader<'d>
     {
         Ok(Label {
-            mbid: reader.read(".//mb:label/@id")?,
-            name: reader.read(".//mb:label/mb:name/text()")?,
-            sort_name: reader.read(".//mb:label/mb:sort-name/text()")?,
-            disambiguation: reader.read_option(".//mb:label/mb:disambiguation/text()")?,
-            aliases: reader.read_vec(".//mb:label/mb:alias-list/mb:alias/text()")?,
-            label_code: reader.read_option(".//mb:label/mb:label-code/text()")?,
-            label_type: reader.read(".//mb:label/@type")?,
-            country: reader.read_option(".//mb:label/mb:country/text()")?,
-            ipi_code: None, // TODO
-            isni_code: None, // TODO
-            begin_date: reader.read_option(".//mb:label/mb:life-span/mb:begin/text()")?,
-            end_date: reader.read_option(".//mb:label/mb:life-span/mb:end/text()")?,
-        })
+               mbid: reader.read(".//mb:label/@id")?,
+               name: reader.read(".//mb:label/mb:name/text()")?,
+               sort_name: reader.read(".//mb:label/mb:sort-name/text()")?,
+               disambiguation: reader.read_option(".//mb:label/mb:disambiguation/text()")?,
+               aliases: reader.read_vec(".//mb:label/mb:alias-list/mb:alias/text()")?,
+               label_code: reader.read_option(".//mb:label/mb:label-code/text()")?,
+               label_type: reader.read(".//mb:label/@type")?,
+               country: reader.read_option(".//mb:label/mb:country/text()")?,
+               ipi_code: None, // TODO
+               isni_code: None, // TODO
+               begin_date: reader.read_option(".//mb:label/mb:life-span/mb:begin/text()")?,
+               end_date: reader.read_option(".//mb:label/mb:life-span/mb:end/text()")?,
+           })
     }
 }
 

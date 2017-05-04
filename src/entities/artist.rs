@@ -98,18 +98,18 @@ impl FromXml for Artist {
         where R: XpathReader<'d>
     {
         Ok(Artist {
-            mbid: reader.read(".//mb:artist/@id")?,
-            name: reader.read(".//mb:artist/mb:name/text()")?,
-            sort_name: reader.read(".//mb:artist/mb:sort-name/text()")?,
-            aliases: reader.read_vec(".//mb:artist/mb:alias-list/mb:alias/text()")?,
-            artist_type: reader.read(".//mb:artist/@type")?,
-            gender: reader.read_option(".//mb:artist/mb:gender/text()")?,
-            area: reader.read_option(".//mb:artist/mb:area")?,
-            begin_date: reader.read_option(".//mb:artist/mb:life-span/mb:begin/text()")?,
-            end_date: reader.read_option(".//mb:artist/mb:life-span/mb:end/text()")?,
-            ipi_code: reader.read_option(".//mb:artist/mb:ipi/text()")?,
-            isni_code: reader.read_option(".//mb:artist/mb:isni-list/mb:isni/text()")?,
-        })
+               mbid: reader.read(".//mb:artist/@id")?,
+               name: reader.read(".//mb:artist/mb:name/text()")?,
+               sort_name: reader.read(".//mb:artist/mb:sort-name/text()")?,
+               aliases: reader.read_vec(".//mb:artist/mb:alias-list/mb:alias/text()")?,
+               artist_type: reader.read(".//mb:artist/@type")?,
+               gender: reader.read_option(".//mb:artist/mb:gender/text()")?,
+               area: reader.read_option(".//mb:artist/mb:area")?,
+               begin_date: reader.read_option(".//mb:artist/mb:life-span/mb:begin/text()")?,
+               end_date: reader.read_option(".//mb:artist/mb:life-span/mb:end/text()")?,
+               ipi_code: reader.read_option(".//mb:artist/mb:ipi/text()")?,
+               isni_code: reader.read_option(".//mb:artist/mb:isni-list/mb:isni/text()")?,
+           })
     }
 }
 
@@ -143,9 +143,9 @@ mod tests {
 
         assert_eq!(result.begin_date,
                    Some(Date::Month {
-                       year: 2014,
-                       month: 3,
-                   }));
+                            year: 2014,
+                            month: 3,
+                        }));
         assert_eq!(result.end_date, None);
 
         let area = result.area.unwrap();
@@ -181,10 +181,10 @@ mod tests {
 
         assert_eq!(result.begin_date,
                    Some(Date::Day {
-                       year: 1986,
-                       month: 3,
-                       day: 28,
-                   }));
+                            year: 1986,
+                            month: 3,
+                            day: 28,
+                        }));
         assert_eq!(result.end_date, None);
 
         let area = result.area.unwrap();

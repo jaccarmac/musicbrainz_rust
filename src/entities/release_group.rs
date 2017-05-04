@@ -94,9 +94,9 @@ impl FromXml for ReleaseGroupType {
         where R: XpathReader<'d>
     {
         Ok(ReleaseGroupType {
-            primary: reader.read_option(".//mb:primary-type/text()")?,
-            secondary: reader.read_vec(".//mb:secondary-type-list/mb:secondary-type/text()")?,
-        })
+               primary: reader.read_option(".//mb:primary-type/text()")?,
+               secondary: reader.read_vec(".//mb:secondary-type-list/mb:secondary-type/text()")?,
+           })
     }
 }
 
@@ -143,15 +143,15 @@ impl FromXml for ReleaseGroup {
         where R: XpathReader<'d>
     {
         Ok(ReleaseGroup {
-            mbid: reader.read(".//mb:release-group/@id")?,
-            title: reader.read(".//mb:release-group/mb:title/text()")?,
-            releases: reader.read_vec(".//mb:release-group/mb:release-list/mb:release")?,
-            artists:
-                reader.read_vec(".//mb:release-group/mb:artist-credit/mb:name-credit/mb:artist")?,
-            release_type: reader.read(".//mb:release-group")?,
-            disambiguation: reader.read_option(".//mb:release-group/mb:disambiguation/text()")?,
-            annotation: reader.read_option(".//mb:release-group/mb:annotation/text()")?,
-        })
+               mbid: reader.read(".//mb:release-group/@id")?,
+               title: reader.read(".//mb:release-group/mb:title/text()")?,
+               releases: reader.read_vec(".//mb:release-group/mb:release-list/mb:release")?,
+               artists:
+                   reader.read_vec(".//mb:release-group/mb:artist-credit/mb:name-credit/mb:artist")?,
+               release_type: reader.read(".//mb:release-group")?,
+               disambiguation: reader.read_option(".//mb:release-group/mb:disambiguation/text()")?,
+               annotation: reader.read_option(".//mb:release-group/mb:annotation/text()")?,
+           })
     }
 }
 

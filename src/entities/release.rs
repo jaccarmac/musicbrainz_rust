@@ -27,15 +27,16 @@ impl FromXml for ReleaseTrack {
         where R: XpathReader<'d>
     {
         Ok(ReleaseTrack {
-            mbid: reader.read(".//@id")?,
-            position: reader.read(".//mb:position/text()")?,
-            number: reader.read(".//mb:number/text()")?,
-            title: reader.read(".//mb:title/text()")?,
-            length: Duration::from_millis(reader.evaluate(".//mb:length/text()")?
-                .string()
-                .parse()?),
-            recording: reader.read(".//mb:recording")?,
-        })
+               mbid: reader.read(".//@id")?,
+               position: reader.read(".//mb:position/text()")?,
+               number: reader.read(".//mb:number/text()")?,
+               title: reader.read(".//mb:title/text()")?,
+               length: Duration::from_millis(reader
+                                                 .evaluate(".//mb:length/text()")?
+                                                 .string()
+                                                 .parse()?),
+               recording: reader.read(".//mb:recording")?,
+           })
     }
 }
 
@@ -56,9 +57,9 @@ impl FromXml for ReleaseMedium {
         where R: XpathReader<'d>
     {
         Ok(ReleaseMedium {
-            position: reader.read(".//mb:position/text()")?,
-            tracks: reader.read_vec(".//mb:track-list/mb:track")?,
-        })
+               position: reader.read(".//mb:position/text()")?,
+               tracks: reader.read_vec(".//mb:track-list/mb:track")?,
+           })
     }
 }
 
@@ -89,8 +90,8 @@ impl FromStr for ReleaseStatus {
             "PseudoRelease" => Ok(ReleaseStatus::PseudoRelease),
             s => {
                 Err(ParseErrorKind::InvalidData(format!("Unknown `ReleaseStatus`: '{}'", s)
-                        .to_string())
-                    .into())
+                                                    .to_string())
+                            .into())
             }
         }
     }
@@ -163,26 +164,27 @@ impl FromXml for Release {
     {
         use xpath_reader::errors::ChainXpathErr;
         Ok(Release {
-            mbid: reader.read(".//mb:release/@id")?,
-            title: reader.read(".//mb:release/mb:title/text()")?,
-            artists: reader.read_vec(".//mb:release/mb:artist-credit/mb:name-credit")?,
-            date: reader.read(".//mb:release/mb:date/text()")?,
-            country: reader.read(".//mb:release/mb:country/text()")?,
-            labels: reader.read_vec(".//mb:release/mb:label-info-list/mb:label-info")?,
-            catalogue_number:
-                reader.read_option(".//mb:release/mb:label-info-list/mb:label-info/mb:\
+               mbid: reader.read(".//mb:release/@id")?,
+               title: reader.read(".//mb:release/mb:title/text()")?,
+               artists: reader.read_vec(".//mb:release/mb:artist-credit/mb:name-credit")?,
+               date: reader.read(".//mb:release/mb:date/text()")?,
+               country: reader.read(".//mb:release/mb:country/text()")?,
+               labels: reader.read_vec(".//mb:release/mb:label-info-list/mb:label-info")?,
+               catalogue_number: reader
+                   .read_option(".//mb:release/mb:label-info-list/mb:label-info/mb:\
                               catalog-number/text()")?,
-            barcode: reader.read_option(".//mb:release/mb:barcode/text()")?,
-            status: reader.evaluate(".//mb:release/mb:status/text()")?
-                .string()
-                .parse::<ReleaseStatus>()
-                .chain_err(|| "Failed parsing ReleaseStatus")?,
-            packaging: reader.read_option(".//mb:release/mb:packaging/text()")?,
-            language: reader.read(".//mb:release/mb:text-representation/mb:language/text()")?,
-            script: reader.read(".//mb:release/mb:text-representation/mb:script/text()")?,
-            disambiguation: reader.read_option(".//mb:release/mb:disambiguation/text()")?,
-            mediums: reader.read_vec(".//mb:release/mb:medium-list/mb:medium")?,
-        })
+               barcode: reader.read_option(".//mb:release/mb:barcode/text()")?,
+               status: reader
+                   .evaluate(".//mb:release/mb:status/text()")?
+                   .string()
+                   .parse::<ReleaseStatus>()
+                   .chain_err(|| "Failed parsing ReleaseStatus")?,
+               packaging: reader.read_option(".//mb:release/mb:packaging/text()")?,
+               language: reader.read(".//mb:release/mb:text-representation/mb:language/text()")?,
+               script: reader.read(".//mb:release/mb:text-representation/mb:script/text()")?,
+               disambiguation: reader.read_option(".//mb:release/mb:disambiguation/text()")?,
+               mediums: reader.read_vec(".//mb:release/mb:medium-list/mb:medium")?,
+           })
     }
 }
 

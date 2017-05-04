@@ -23,11 +23,12 @@ impl FromXml for AreaRef {
         where R: XpathReader<'d>
     {
         Ok(AreaRef {
-            mbid: reader.read(".//@id")?,
-            name: reader.read(".//mb:name/text()")?,
-            sort_name: reader.read(".//mb:sort-name/text()")?,
-            iso_3166: reader.read_option(".//mb:iso-3166-1-code-list/mb:iso-3166-1-code/text()")?,
-        })
+               mbid: reader.read(".//@id")?,
+               name: reader.read(".//mb:name/text()")?,
+               sort_name: reader.read(".//mb:sort-name/text()")?,
+               iso_3166:
+                   reader.read_option(".//mb:iso-3166-1-code-list/mb:iso-3166-1-code/text()")?,
+           })
     }
 }
 
@@ -56,10 +57,10 @@ impl FromXml for ArtistRef {
         where R: XpathReader<'d>
     {
         Ok(ArtistRef {
-            mbid: reader.read(".//@id")?,
-            name: reader.read(".//mb:name/text()")?,
-            sort_name: reader.read(".//mb:sort-name/text()")?,
-        })
+               mbid: reader.read(".//@id")?,
+               name: reader.read(".//mb:name/text()")?,
+               sort_name: reader.read(".//mb:sort-name/text()")?,
+           })
     }
 }
 
@@ -77,11 +78,11 @@ impl FromXml for LabelRef {
         where R: XpathReader<'d>
     {
         Ok(LabelRef {
-            mbid: reader.read(".//@id")?,
-            name: reader.read(".//mb:name/text()")?,
-            sort_name: reader.read(".//mb:sort-name/text()")?,
-            label_code: reader.read_option(".//mb:label-code/text()")?,
-        })
+               mbid: reader.read(".//@id")?,
+               name: reader.read(".//mb:name/text()")?,
+               sort_name: reader.read(".//mb:sort-name/text()")?,
+               label_code: reader.read_option(".//mb:label-code/text()")?,
+           })
     }
 }
 
@@ -98,11 +99,11 @@ impl FromXml for RecordingRef {
         where R: XpathReader<'d>
     {
         Ok(RecordingRef {
-            mbid: reader.read(".//@id")?,
-            title: reader.read(".//mb:title/text()")?,
-            // TODO reader.read<Duration>
-            length: Duration::from_millis(reader.read(".//mb:length/text()")?),
-        })
+               mbid: reader.read(".//@id")?,
+               title: reader.read(".//mb:title/text()")?,
+               // TODO reader.read<Duration>
+               length: Duration::from_millis(reader.read(".//mb:length/text()")?),
+           })
     }
 }
 
@@ -122,13 +123,14 @@ impl FromXml for ReleaseRef {
     {
         use xpath_reader::errors::ChainXpathErr;
         Ok(ReleaseRef {
-            mbid: reader.read(".//@id")?,
-            title: reader.read(".//mb:title/text()")?,
-            date: reader.read(".//mb:date/text()")?,
-            status: reader.read::<String>(".//mb:status/text()")?
-                .parse()
-                .chain_err(|| "Failed parsing Status")?,
-            country: reader.read(".//mb:country/text()")?,
-        })
+               mbid: reader.read(".//@id")?,
+               title: reader.read(".//mb:title/text()")?,
+               date: reader.read(".//mb:date/text()")?,
+               status: reader
+                   .read::<String>(".//mb:status/text()")?
+                   .parse()
+                   .chain_err(|| "Failed parsing Status")?,
+               country: reader.read(".//mb:country/text()")?,
+           })
     }
 }

@@ -4,8 +4,7 @@ pub use std::time::Duration;
 
 use super::{ParseError, ParseErrorKind};
 
-use xpath_reader::{Context, FromXml, OptionFromXml, XpathReader, XpathStrReader, XpathNodeReader,
-                   XpathError, XpathErrorKind};
+use xpath_reader::{Context, FromXml, OptionFromXml, XpathReader, XpathError};
 use xpath_reader::reader::{FromXmlContained, FromXmlElement};
 
 mod date;
@@ -13,6 +12,9 @@ pub use self::date::{Date, ParseDateError};
 
 pub mod refs;
 pub use self::refs::{AreaRef, ArtistRef, LabelRef, RecordingRef, ReleaseRef};
+
+#[cfg(test)]
+use xpath_reader::XpathStrReader;
 
 mod area;
 mod artist;

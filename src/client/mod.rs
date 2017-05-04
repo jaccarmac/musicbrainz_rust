@@ -1,4 +1,4 @@
-use super::{hyper, ParseError, ClientError};
+use super::{hyper, ClientError};
 use super::entities::{Mbid, Resource};
 
 use hyper::Url;
@@ -6,10 +6,11 @@ use hyper::header::UserAgent;
 use hyper::net::HttpsConnector;
 use hyper_native_tls::NativeTlsClient;
 use std::io::Read;
-use xpath_reader::reader::{XpathReader, XpathStrReader, FromXmlContained};
+use xpath_reader::reader::{XpathStrReader, FromXmlContained};
 
 pub mod search;
-use self::search::{SearchBuilder, ReleaseGroupSearchBuilder};
+use self::search::ReleaseGroupSearchBuilder;
+pub use self::search::SearchBuilder;
 
 /// Configuration for the client.
 pub struct ClientConfig {
@@ -48,7 +49,6 @@ impl Client {
         where Res: Resource + FromXmlContained
     {
         use entities::default_musicbrainz_context;
-        use hyper::header::UserAgent;
 
         let url = Res::get_url(mbid);
         let response_body = self.get_body(url.parse()?)?;

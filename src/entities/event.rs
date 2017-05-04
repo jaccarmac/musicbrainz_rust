@@ -76,16 +76,16 @@ impl FromXml for Event {
         where R: XpathReader<'d>
     {
         Ok(Event {
-            mbid: reader.read(".//mb:event/@id")?,
-            name: reader.read(".//mb:event/mb:name")?,
-            aliases: reader.read_vec(".//mb:event/mb:alias-list/mb:alias/text()")?,
-            event_type: reader.read(".//mb:event/@type")?,
-            setlist: reader.read_option(".//mb:event/mb:setlist")?,
-            begin_date: reader.read(".//mb:event/mb:life-span/mb:begin")?,
-            end_date: reader.read(".//mb:event/mb:life-span/mb:end")?,
-            disambiguation: reader.read_option(".//mb:event/mb:disambiguation")?,
-            annotation: reader.read_option(".//mb:event/mb:annotation/mb:text/text()")?,
-        })
+               mbid: reader.read(".//mb:event/@id")?,
+               name: reader.read(".//mb:event/mb:name")?,
+               aliases: reader.read_vec(".//mb:event/mb:alias-list/mb:alias/text()")?,
+               event_type: reader.read(".//mb:event/@type")?,
+               setlist: reader.read_option(".//mb:event/mb:setlist")?,
+               begin_date: reader.read(".//mb:event/mb:life-span/mb:begin")?,
+               end_date: reader.read(".//mb:event/mb:life-span/mb:end")?,
+               disambiguation: reader.read_option(".//mb:event/mb:disambiguation")?,
+               annotation: reader.read_option(".//mb:event/mb:annotation/mb:text/text()")?,
+           })
     }
 }
 
