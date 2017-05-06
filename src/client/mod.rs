@@ -1,4 +1,4 @@
-use super::{ClientError, hyper};
+use super::{ClientError, ClientErrorKind, hyper};
 use super::entities::{Mbid, Resource};
 
 use hyper::Url;
@@ -11,6 +11,9 @@ use xpath_reader::reader::{FromXmlContained, XpathStrReader};
 pub mod search;
 use self::search::{AreaSearchBuilder, ArtistSearchBuilder, ReleaseGroupSearchBuilder};
 pub use self::search::SearchBuilder;
+
+mod error;
+use self::error::check_response_error;
 
 /// Configuration for the client.
 pub struct ClientConfig {
@@ -60,6 +63,7 @@ impl Client {
         // Parse the response.
         let context = default_musicbrainz_context();
         let reader = XpathStrReader::new(&response_body[..], &context)?;
+        check_response_error(&reader)?;
         Ok(Res::from_xml(&reader)?)
     }
 

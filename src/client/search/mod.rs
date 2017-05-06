@@ -89,6 +89,7 @@ macro_rules! define_search_builder {
                 context.set_namespace("ext", "http://musicbrainz.org/ns/ext#-2.0");
 
                 let reader = XpathStrReader::new(xml, &context)?;
+                check_response_error(&reader)?;
                 Ok(reader.read_vec("//mb:metadata")?)
             }
         }
@@ -99,7 +100,6 @@ macro_rules! define_search_builder {
 
             fn search(self) -> SearchResult<Self::Entity> {
                 let url = self.build_url()?;
-                println!("search url: {}", url);
 
                 // Perform the request.
                 let response_body = self.client.get_body(url)?;

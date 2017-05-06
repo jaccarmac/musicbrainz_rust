@@ -61,6 +61,16 @@ pub mod errors {
             HyperTlsError(::hyper_native_tls::native_tls::Error);
             IoError(::std::io::Error);
         }
+
+        errors {
+            /// This is most likely a rate limit, but since the errors aren't coded and there are
+            /// also other issues like the server being busy we don't distinguish it except for the
+            /// provided message.
+            MusicbrainzServerError(msg: String) {
+                description("MusicBrainz server error")
+                display("MusicBrainz server error: {}", msg)
+            }
+        }
     }
 }
 pub use errors::*;
