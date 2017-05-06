@@ -43,11 +43,11 @@ macro_rules! define_fields {
     };
 }
 
-// TODO: release group : artist
 define_fields!(
     ReleaseGroupSearchField, release_group;
 
     ArtistId, "arid", Mbid;
+    ArtistCredit, "artist", String;
     ArtistName, "artistname", String;
     Comment, "comment", String;
     CreditName, "creditname", String;

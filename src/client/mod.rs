@@ -72,6 +72,7 @@ impl Client {
         Ok(response_body)
     }
 
+    /// Returns a search builder to search for a release group.
     pub fn search_release_group<'cl>(&'cl self) -> ReleaseGroupSearchBuilder<'cl>
     {
         ReleaseGroupSearchBuilder::new(self)
