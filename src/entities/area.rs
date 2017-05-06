@@ -1,4 +1,5 @@
 use super::*;
+use std::fmt;
 
 /// Specifies what a specific `Area` instance actually is.
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -49,11 +50,27 @@ impl FromXml for AreaType {
     }
 }
 
+impl fmt::Display for AreaType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
+    {
+        match *self {
+            AreaType::Country => write!(f, "Country"),
+            AreaType::Subdivision => write!(f, "Subdivision"),
+            AreaType::County => write!(f, "County"),
+            AreaType::Muncipality => write!(f, "Muncipality"),
+            AreaType::City => write!(f, "City"),
+            AreaType::District => write!(f, "District"),
+            AreaType::Island => write!(f, "Island"),
+        }
+    }
+}
+
 /// A geographic region or settlement.
 /// The exact type is distinguished by the `area_type` field.
 /// This is one of the *core entities* of MusicBrainz.
 ///
 /// https://musicbrainz.org/doc/Area
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Area {
     /// MBID of the entity in the MusicBrainz database.
     pub mbid: Mbid,

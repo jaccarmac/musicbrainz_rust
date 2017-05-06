@@ -18,6 +18,29 @@ pub trait SearchEntity {
     fn fetch_full(&self, client: &Client) -> Result<Self::FullEntity, ClientError>;
 }
 
+// It's the same entity.
+pub use self::full_entities::Area;
+
+impl SearchEntity for Area {
+    type FullEntity = Area;
+
+    fn fetch_full(&self, _: &Client) -> Result<Self::FullEntity, ClientError>
+    {
+        Ok(self.to_owned())
+    }
+}
+
+pub use self::full_entities::Artist;
+
+impl SearchEntity for Artist {
+    type FullEntity = Artist;
+
+    fn fetch_full(&self, _: &Client) -> Result<Self::FullEntity, ClientError>
+    {
+        Ok(self.to_owned())
+    }
+}
+
 pub struct ReleaseGroup {
     pub mbid: Mbid,
     pub title: String,

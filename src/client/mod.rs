@@ -9,7 +9,7 @@ use std::io::Read;
 use xpath_reader::reader::{FromXmlContained, XpathStrReader};
 
 pub mod search;
-use self::search::ReleaseGroupSearchBuilder;
+use self::search::{AreaSearchBuilder, ArtistSearchBuilder, ReleaseGroupSearchBuilder};
 pub use self::search::SearchBuilder;
 
 /// Configuration for the client.
@@ -70,6 +70,18 @@ impl Client {
         let mut response_body = String::new();
         response.read_to_string(&mut response_body)?;
         Ok(response_body)
+    }
+
+    /// Returns a search builder to search for an area.
+    pub fn search_area<'cl>(&'cl self) -> AreaSearchBuilder<'cl>
+    {
+        AreaSearchBuilder::new(self)
+    }
+
+    /// Returns a search biulder to search for an artist.
+    pub fn search_artist<'cl>(&'cl self) -> ArtistSearchBuilder<'cl>
+    {
+        ArtistSearchBuilder::new(self)
     }
 
     /// Returns a search builder to search for a release group.

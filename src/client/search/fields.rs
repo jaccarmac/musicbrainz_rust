@@ -1,6 +1,7 @@
 /// ! For now only including the search fields of release group.
 
 use super::{Mbid, full_entities};
+use entities::Date;
 
 pub trait SearchField {
     type Value: ToString;
@@ -25,20 +26,39 @@ macro_rules! define_fields {
 }
 
 define_fields!(
-    ArtistId, Mbid;
+    Alias, String;
+    AreaId, Mbid;
+    AreaIso, String;
+    AreaIso1, String;
+    AreaIso2, String;
+    AreaIso3, String;
+    AreaName, String;
+    AreaType, full_entities::AreaType;
     ArtistCredit, String;
+    ArtistId, Mbid;
     ArtistName, String;
+    ArtistNameAccent, String;
+    ArtistType, full_entities::ArtistType;
+    BeginArea, String;
+    BeginDate, Date;
     Comment, String;
+    Country, String;
     CreditName, String;
+    EndArea, String;
+    EndDate, Date;
+    Ended, bool;
+    Gender, String;
+    IpiCode, String;
     PrimaryType, full_entities::ReleaseGroupPrimaryType;
     ReleaseGroupId, Mbid;
     ReleaseGroupName, String;
     ReleaseGroupNameAccent, String;
-    ReleaseNumber, u16;
-    ReleaseName, String;
     ReleaseId, Mbid;
-    SecondaryType, String;
+    ReleaseName, String;
+    ReleaseNumber, u16;
     ReleaseStatus, full_entities::ReleaseStatus;
+    SecondaryType, String;
+    SortName, String;
     Tag, String
 );
 
@@ -72,10 +92,50 @@ macro_rules! define_entity_fields {
 }
 
 define_entity_fields!(
+    AreaSearchField, area;
+
+    Alias, "alias";
+    AreaId, "aid";
+    AreaIso, "iso";
+    AreaIso1, "iso1";
+    AreaIso2, "iso2";
+    AreaIso3, "iso3";
+    AreaName, "area";
+    AreaType, "type";
+    BeginDate, "begin";
+    Comment, "comment";
+    EndDate, "end";
+    Ended, "ended";
+    SortName, "sortname"
+);
+
+define_entity_fields!(
+    ArtistSearchField, artist;
+
+    Alias, "alias";
+    AreaName, "area";
+    ArtistId, "arid";
+    ArtistName, "artist";
+    ArtistNameAccent, "artistaccent";
+    ArtistType, "type";
+    BeginArea, "beginarea";
+    BeginDate, "begin";
+    Comment, "comment";
+    Country, "country";
+    EndArea, "endarea";
+    EndDate, "end";
+    Ended, "ended";
+    Gender, "gender";
+    IpiCode, "ipi";
+    SortName, "sortname";
+    Tag, "tag"
+);
+
+define_entity_fields!(
     ReleaseGroupSearchField, release_group;
 
-    ArtistId, "arid";
     ArtistCredit, "artist";
+    ArtistId, "arid";
     ArtistName, "artistname";
     Comment, "comment";
     CreditName, "creditname";
@@ -83,10 +143,10 @@ define_entity_fields!(
     ReleaseGroupId, "rgid";
     ReleaseGroupName, "releasegroup";
     ReleaseGroupNameAccent, "releasegroupaccent";
-    ReleaseNumber, "releases";
-    ReleaseName, "release";
     ReleaseId, "reid";
-    SecondaryType, "secondarytype";
+    ReleaseName, "release";
+    ReleaseNumber, "releases";
     ReleaseStatus, "status";
+    SecondaryType, "secondarytype";
     Tag, "tag"
 );

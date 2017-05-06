@@ -1,4 +1,5 @@
 use super::*;
+use std::fmt;
 
 /// TODO: Find all possible variants. (It says "male, female or neither" in the
 /// docs but what does
@@ -53,12 +54,27 @@ impl FromXml for ArtistType {
     }
 }
 
+impl fmt::Display for ArtistType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
+    {
+        match *self {
+            ArtistType::Person => write!(f, "Person"),
+            ArtistType::Group => write!(f, "Group"),
+            ArtistType::Orchestra => write!(f, "Orchestra"),
+            ArtistType::Choir => write!(f, "Choir"),
+            ArtistType::Character => write!(f, "Character"),
+            ArtistType::Other => write!(f, "Other"),
+        }
+    }
+}
+
 /// A musician, a group or another music professional. There are also a couple
 /// special purpose
 /// artists.
 ///
 /// Additional information can be found in the MusicBrainz wiki:
 /// https://musicbrainz.org/doc/Artist
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Artist {
     /// MBID of the entity in the MusicBrainz database.
     pub mbid: Mbid,
@@ -79,6 +95,10 @@ pub struct Artist {
     /// misspellings, versions in different scripts and other variations of the
     /// artist name.
     pub aliases: Vec<String>,
+
+    /// Additional disambiguation if there are multiple artists with the exact
+    /// same name.
+    pub disambiguation: Option<String>,
 
     /// Whether this Artist is a person, group, or something else.
     pub artist_type: ArtistType,
@@ -108,17 +128,18 @@ impl FromXml for Artist {
         where R: XpathReader<'d>
     {
         Ok(Artist {
+               aliases: reader.read_vec(".//mb:artist/mb:alias-list/mb:alias/text()")?,
+               area: reader.read_option(".//mb:artist/mb:area")?,
+               artist_type: reader.read(".//mb:artist/@type")?,
+               begin_date: reader.read_option(".//mb:artist/mb:life-span/mb:begin/text()")?,
+               disambiguation: reader.read_option(".//mb:artist/mb:disambiguation/text()")?,
+               end_date: reader.read_option(".//mb:artist/mb:life-span/mb:end/text()")?,
+               gender: reader.read_option(".//mb:artist/mb:gender/text()")?,
+               ipi_code: reader.read_option(".//mb:artist/mb:ipi/text()")?,
+               isni_code: reader.read_option(".//mb:artist/mb:isni-list/mb:isni/text()")?,
                mbid: reader.read(".//mb:artist/@id")?,
                name: reader.read(".//mb:artist/mb:name/text()")?,
                sort_name: reader.read(".//mb:artist/mb:sort-name/text()")?,
-               aliases: reader.read_vec(".//mb:artist/mb:alias-list/mb:alias/text()")?,
-               artist_type: reader.read(".//mb:artist/@type")?,
-               gender: reader.read_option(".//mb:artist/mb:gender/text()")?,
-               area: reader.read_option(".//mb:artist/mb:area")?,
-               begin_date: reader.read_option(".//mb:artist/mb:life-span/mb:begin/text()")?,
-               end_date: reader.read_option(".//mb:artist/mb:life-span/mb:end/text()")?,
-               ipi_code: reader.read_option(".//mb:artist/mb:ipi/text()")?,
-               isni_code: reader.read_option(".//mb:artist/mb:isni-list/mb:isni/text()")?,
            })
     }
 }

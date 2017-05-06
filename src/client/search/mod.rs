@@ -7,7 +7,7 @@ use url::percent_encoding::{DEFAULT_ENCODE_SET, utf8_percent_encode};
 use xpath_reader::{FromXml, XpathError, XpathReader};
 
 pub mod fields;
-use self::fields::release_group::ReleaseGroupSearchField;
+use self::fields::{AreaSearchField, ArtistSearchField, ReleaseGroupSearchField};
 
 pub mod entities;
 use self::entities::SearchEntity;
@@ -119,6 +119,18 @@ macro_rules! define_search_builder {
         }
     }
 }
+
+define_search_builder!(AreaSearchBuilder,
+                       AreaSearchField,
+                       entities::Area,
+                       full_entities::Area,
+                       "area-list");
+
+define_search_builder!(ArtistSearchBuilder,
+                       ArtistSearchField,
+                       entities::Artist,
+                       full_entities::Artist,
+                       "artist-list");
 
 define_search_builder!(ReleaseGroupSearchBuilder,
                        ReleaseGroupSearchField,
