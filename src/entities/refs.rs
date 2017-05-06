@@ -116,9 +116,9 @@ impl FromXml for RecordingRef {
 pub struct ReleaseRef {
     pub mbid: Mbid,
     pub title: String,
-    pub date: Date,
+    pub date: Option<Date>,
     pub status: ReleaseStatus,
-    pub country: String,
+    pub country: Option<String>,
 }
 
 impl FromXmlElement for ReleaseRef {}
@@ -130,12 +130,12 @@ impl FromXml for ReleaseRef {
         Ok(ReleaseRef {
                mbid: reader.read(".//@id")?,
                title: reader.read(".//mb:title/text()")?,
-               date: reader.read(".//mb:date/text()")?,
+               date: reader.read_option(".//mb:date/text()")?,
                status: reader
                    .read::<String>(".//mb:status/text()")?
                    .parse()
                    .chain_err(|| "Failed parsing Status")?,
-               country: reader.read(".//mb:country/text()")?,
+               country: reader.read_option(".//mb:country/text()")?,
            })
     }
 }

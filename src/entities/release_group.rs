@@ -190,12 +190,12 @@ mod tests {
             ReleaseRef {
                 mbid: Mbid::from_str("289bf4e7-0af5-433c-b5a2-493b863b4b47").unwrap(),
                 title: "Mixtape".to_string(),
-                date: Date::Month {
-                    year: 2012,
-                    month: 03,
-                },
+                date: Some(Date::Month {
+                               year: 2012,
+                               month: 03,
+                           }),
                 status: ReleaseStatus::Official,
-                country: "US".to_string(),
+                country: Some("US".to_string()),
             },
         ]);
         assert_eq!(rg.release_type.primary,

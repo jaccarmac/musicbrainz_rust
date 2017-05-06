@@ -1,8 +1,9 @@
 use super::*;
 use super::super::entities as full_entities;
-use hyper::Url;
-use url::percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
 
+use entities::default_musicbrainz_context;
+use hyper::Url;
+use url::percent_encoding::{DEFAULT_ENCODE_SET, utf8_percent_encode};
 use xpath_reader::{FromXml, XpathError, XpathReader};
 
 pub mod fields;
@@ -65,7 +66,7 @@ macro_rules! define_search_builder {
                 self
             }
 
-            // TODO: In the future support OR queries too.
+            /// Builds the full url to be used to perform the search request.
             fn build_url(&self) -> Result<Url, ClientError> {
                 let mut query_parts: Vec<String> = Vec::new();
                 for &(p_name, ref p_value) in self.params.iter() {
@@ -73,9 +74,19 @@ macro_rules! define_search_builder {
                     query_parts.push(format!("{}:{}", p_name, value));
                 }
 
+                // TODO: In the future support OR queries too.
                 let query = query_parts.join("%20AND%20");
                 type FE = $full_entity;
                 Ok(Url::parse(format!("{}?query={}", FE::base_url(), query).as_ref())?)
+            }
+
+            /// Parse the search result.
+            fn parse_xml(xml: &str) -> SearchResult<$entity> {
+                let mut context = default_musicbrainz_context();
+                context.set_namespace("ext", "http://musicbrainz.org/ns/ext#-2.0");
+
+                let reader = XpathStrReader::new(xml, &context)?;
+                Ok(reader.read_vec("//mb:metadata")?)
             }
         }
 
@@ -84,18 +95,12 @@ macro_rules! define_search_builder {
             type FullEntity = $full_entity;
 
             fn search(self) -> SearchResult<Self::Entity> {
-                use entities::default_musicbrainz_context;
-
-//                let url = Url::parse_with_params(Self::FullEntity::base_url(), &self.params)?;
                 let url = self.build_url()?;
                 println!("search url: {}", url);
 
                 // Perform the request.
                 let response_body = self.client.get_body(url)?;
-                let context = default_musicbrainz_context();
-                let reader = XpathStrReader::new(response_body.as_str(), &context)?;
-
-                Ok(reader.read_vec("//mb:metadata")?)
+                Self::parse_xml(response_body.as_str())
             }
         }
 
@@ -105,7 +110,7 @@ macro_rules! define_search_builder {
             {
                 Ok(Self {
                     entity: reader.read(format!(".//mb:{}", $list_tag).as_str())?,
-                    score: reader.read(format!(".//mb:{}/@count", $list_tag).as_str())?,
+                    score: reader.read(format!(".//mb:{}/*/@ext:score", $list_tag).as_str())?,
                 })
             }
         }
@@ -117,3 +122,26 @@ define_search_builder!(ReleaseGroupSearchBuilder,
                        entities::ReleaseGroup,
                        full_entities::ReleaseGroup,
                        "release-group-list");
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn deserialize_releasegroup()
+    {
+        // url: https://musicbrainz.org/ws/2/release-group/?query=releasegroup:
+        // %E9%9C%8A%E9%AD%82%E6%B6%88%E6%BB%85
+        let xml = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><metadata created="2017-05-06T09:45:01.432Z" xmlns="http://musicbrainz.org/ns/mmd-2.0#" xmlns:ext="http://musicbrainz.org/ns/ext#-2.0"><release-group-list count="1" offset="0"><release-group id="739de9cd-7e81-4bb0-9fdb-0feb7ea709c7" type="Single" ext:score="100"><title>霊魂消滅</title><primary-type>Single</primary-type><artist-credit><name-credit><artist id="90e7c2f9-273b-4d6c-a662-ab2d73ea4b8e"><name>NECRONOMIDOL</name><sort-name>NECRONOMIDOL</sort-name></artist></name-credit></artist-credit><release-list count="1"><release id="d3d2a860-0093-461d-8d95-b77939c2e944"><title>霊魂消滅</title><status>Official</status></release></release-list></release-group></release-group-list></metadata>"#;
+        let res: Vec<SearchEntry<entities::ReleaseGroup>> =
+            ReleaseGroupSearchBuilder::parse_xml(xml).unwrap();
+
+        assert_eq!(res.len(), 1);
+        let ref rg = res[0];
+
+        assert_eq!(rg.score, 100);
+        assert_eq!(rg.entity.mbid,
+                   "739de9cd-7e81-4bb0-9fdb-0feb7ea709c7".parse().unwrap());
+        assert_eq!(rg.entity.title, "霊魂消滅".to_string());
+    }
+}
