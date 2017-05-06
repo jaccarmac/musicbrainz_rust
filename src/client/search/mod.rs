@@ -7,7 +7,7 @@ use url::percent_encoding::{DEFAULT_ENCODE_SET, utf8_percent_encode};
 use xpath_reader::{FromXml, XpathError, XpathReader};
 
 pub mod fields;
-use self::fields::ReleaseGroupSearchField;
+use self::fields::release_group::ReleaseGroupSearchField;
 
 pub mod entities;
 use self::entities::SearchEntity;
@@ -59,6 +59,8 @@ macro_rules! define_search_builder {
             }
 
             /// Specify an additional parameter for the query.
+            ///
+            /// Currently all parameters will be combined using `AND`.
             pub fn add<F>(mut self, field: F) -> Self
                 where F: $fields
             {
@@ -70,6 +72,7 @@ macro_rules! define_search_builder {
             fn build_url(&self) -> Result<Url, ClientError> {
                 let mut query_parts: Vec<String> = Vec::new();
                 for &(p_name, ref p_value) in self.params.iter() {
+                    // TODO (FIXME): Does this also encode ":" ? 
                     let value  = utf8_percent_encode(p_value.as_ref(), DEFAULT_ENCODE_SET);
                     query_parts.push(format!("{}:{}", p_name, value));
                 }

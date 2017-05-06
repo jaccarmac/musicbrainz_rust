@@ -95,7 +95,7 @@ mod tests {
         let client = get_client();
         let results = client
             .search_release_group()
-            .add(search::fields::ReleaseGroupName("霊魂消滅".to_owned()))
+            .add(search::fields::release_group::ReleaseGroupName("霊魂消滅".to_owned()))
             .search()
             .unwrap();
 
