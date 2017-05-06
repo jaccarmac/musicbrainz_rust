@@ -1,6 +1,7 @@
 use super::*;
 use super::super::entities as full_entities;
 use hyper::Url;
+use url::percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
 
 use xpath_reader::{FromXml, XpathError, XpathReader};
 
@@ -20,8 +21,8 @@ pub trait SearchBuilder {
     /// The full entity a search entity can be expanded into.
     type FullEntity: Resource + FromXml;
 
-    fn build_url(&self, base_url: &str) -> Result<Url, ClientError>;
-    fn search(&self) -> SearchResult<Self::Entity>;
+    /// Perform the search.
+    fn search(self) -> SearchResult<Self::Entity>;
 }
 
 /// One entry of the search results.
@@ -56,12 +57,25 @@ macro_rules! define_search_builder {
                 }
             }
 
-            /// Add a new parameter to the query.
-            pub fn add<F>(&mut self, field: F) -> &mut Self
+            /// Specify an additional parameter for the query.
+            pub fn add<F>(mut self, field: F) -> Self
                 where F: $fields
             {
                 self.params.push((F::name(), field.to_string()));
                 self
+            }
+
+            // TODO: In the future support OR queries too.
+            fn build_url(&self) -> Result<Url, ClientError> {
+                let mut query_parts: Vec<String> = Vec::new();
+                for &(p_name, ref p_value) in self.params.iter() {
+                    let value  = utf8_percent_encode(p_value.as_ref(), DEFAULT_ENCODE_SET);
+                    query_parts.push(format!("{}:{}", p_name, value));
+                }
+
+                let query = query_parts.join("%20AND%20");
+                type FE = $full_entity;
+                Ok(Url::parse(format!("{}?query={}", FE::base_url(), query).as_ref())?)
             }
         }
 
@@ -69,14 +83,11 @@ macro_rules! define_search_builder {
             type Entity = $entity;
             type FullEntity = $full_entity;
 
-            fn build_url(&self, base_url: &str) -> Result<Url, ClientError> {
-                Ok(Url::parse_with_params(base_url, &self.params)?)
-            }
-
-            fn search(&self) -> SearchResult<Self::Entity> {
+            fn search(self) -> SearchResult<Self::Entity> {
                 use entities::default_musicbrainz_context;
 
-                let url = self.build_url(Self::FullEntity::base_url())?;
+//                let url = Url::parse_with_params(Self::FullEntity::base_url(), &self.params)?;
+                let url = self.build_url()?;
                 println!("search url: {}", url);
 
                 // Perform the request.

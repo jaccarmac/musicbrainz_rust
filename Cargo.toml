@@ -7,6 +7,7 @@ authors = ["Leo Schwarz <mail@leoschwarz.com>"]
 error-chain = "0.10.0"
 hyper = "0.10.9"
 hyper-native-tls = "0.2.2"
+url = "1.4.0"
 xpath_reader = "0.2.0"
 
 [dependencies.uuid]
